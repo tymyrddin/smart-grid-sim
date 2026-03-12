@@ -1,0 +1,6 @@
+aiomqtt>=2.0.0
+paho-mqtt>=1.6.0
+pyyaml>=6.0
+dash>=2.0.0
+flask>=2.0.0
+plotly>=5.0.0

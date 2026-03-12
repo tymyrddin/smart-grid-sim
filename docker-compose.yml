@@ -1,0 +1,35 @@
+services:
+  broker:
+    image: eclipse-mosquitto:2
+    container_name: smartgrid-mqtt
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./broker/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto-data:/mosquitto/data
+    networks:
+      - smartgrid-net
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    container_name: smartgrid-dashboard
+    ports:
+      - "8050:8050"
+    depends_on:
+      - broker
+    environment:
+      - MQTT_HOST=broker
+      - MQTT_PORT=1883
+    networks:
+      - smartgrid-net
+    restart: unless-stopped
+
+volumes:
+  mosquitto-data:
+
+networks:
+  smartgrid-net:
+    driver: bridge

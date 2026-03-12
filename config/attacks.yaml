@@ -1,0 +1,641 @@
+attacks:
+
+  # ── Basic Attacks ──────────────────────────────────────────────────────────
+
+  - id: spoof-meter-001
+    category: basic
+    type: spoofing
+    target: meter-001
+    description: "meter-001: voltage spoofing ±50%"
+    info: >
+      False Data Injection: the attacker injects fabricated voltage and current readings into the
+      control system. Grid operators act on wrong data, masking dangerous overloads or hiding
+      developing faults. Extensively documented in academic literature since 2009; observed in
+      real intrusions as a precursor to physical disruption.
+    params:
+      max_deviation: 50
+
+  - id: spoof-meter-002
+    category: basic
+    type: spoofing
+    target: meter-002
+    description: "meter-002: voltage spoofing ±50%"
+    info: >
+      False Data Injection on a second meter. Spoofing multiple measurement points simultaneously
+      makes the falsified picture of the grid coherent and much harder for operators to detect
+      through cross-checking alone.
+    params:
+      max_deviation: 50
+
+  - id: spoof-inverter-001
+    category: basic
+    type: spoofing
+    target: inverter-001
+    description: "inverter-001: output spoofing ±80%"
+    info: >
+      Solar inverter output spoofing. An attacker who can falsify generation readings can trick
+      the grid into believing there is more or less renewable supply than there actually is,
+      causing the system to dispatch the wrong amount of backup generation.
+    params:
+      max_deviation: 80
+
+  - id: shutdown-ev-001
+    category: basic
+    type: shutdown
+    target: ev-charger-001
+    description: "ev-charger-001: forced shutdown"
+    info: >
+      Forced remote shutdown via a spoofed command. In April 2022, attackers remotely disabled
+      EV charging stations along a major UK motorway. In Israel that same year, public chargers
+      were hijacked to display political messages and then shut down. No authentication was
+      required to issue the stop command.
+    params: {}
+
+  - id: shutdown-ev-002
+    category: basic
+    type: shutdown
+    target: ev-charger-002
+    description: "ev-charger-002: forced shutdown"
+    info: >
+      Forced remote shutdown of a second charger. Shutting down multiple chargers simultaneously
+      can create a sharp, sudden drop in load that destabilises local grid frequency, particularly
+      problematic where EV charging makes up a significant share of peak demand.
+    params: {}
+
+  - id: demand-spike-meter-001
+    category: basic
+    type: demand_spike
+    target: meter-001
+    description: "meter-001: demand spike 6×"
+    info: >
+      Load spiking: the attacker injects a wildly inflated demand reading, tricking the energy
+      management system into dispatching far too much generation. The resulting power surge
+      can trip protection relays and cause localised faults. Studied extensively as a Manipulation
+      of Demand via IoT (MaDIoT) attack vector.
+    params:
+      multiplier: 6.0
+
+  - id: demand-spike-ev-001
+    category: basic
+    type: demand_spike
+    target: ev-charger-001
+    description: "ev-charger-001: demand spike 10× (200 kW)"
+    info: >
+      A single EV charger falsely reporting 200 kW draw (10x its maximum) is a credible attack
+      surface. Researchers at Princeton demonstrated in 2021 that coordinated manipulation of
+      high-wattage devices such as EV chargers and water heaters could destabilise regional grids
+      without requiring access to any utility systems directly.
+    params:
+      multiplier: 10.0
+
+  - id: demand-spike-substation-01
+    category: basic
+    type: demand_spike
+    target: substation-01
+    description: "substation-01: load spike 4×"
+    info: >
+      Injecting a 4x load spike at substation level. If the substation management system accepts
+      the falsified reading as real and dispatches accordingly, the resulting imbalance between
+      actual and reported load can trigger cascading trips on neighbouring equipment.
+    params:
+      multiplier: 4.0
+
+  - id: frequency-attack-001
+    category: basic
+    type: frequency_attack
+    target: meter-001
+    description: "meter-001: frequency drop to 47.5 Hz (under-frequency)"
+    info: >
+      Frequency is the heartbeat of the AC grid. The European grid operates at 50.00 Hz; a drop
+      to 47.5 Hz triggers automatic under-frequency load shedding relays, disconnecting large
+      blocks of customers to prevent total collapse. The 2006 European blackout that affected
+      15 million people began with a frequency excursion of under 1 Hz.
+    params:
+      target_frequency: 47.5
+
+  - id: frequency-attack-002
+    category: basic
+    type: frequency_attack
+    target: meter-002
+    description: "meter-002: frequency spike to 52.8 Hz (over-frequency)"
+    info: >
+      An over-frequency event at 52.8 Hz causes generators to automatically trip offline to
+      protect their turbines, removing supply from the grid and potentially triggering a collapse
+      in the opposite direction to the initial spike. Both under- and over-frequency attacks
+      have been demonstrated as achievable through demand manipulation alone.
+    params:
+      target_frequency: 52.8
+
+  - id: cascade-substation-01
+    category: basic
+    type: cascading_failure
+    target: substation-01
+    description: "substation-01: cascading failure"
+    info: >
+      Cascading failure: a fault at one substation trips its protection relays, transferring load
+      to neighbouring equipment which then overloads and trips in turn. The 2003 Northeast
+      blackout (the largest in North American history, affecting 55 million people) began with
+      a software bug and a single line contact with an overgrown tree. The cascade completed in
+      nine seconds.
+    params:
+      probability: 0.8
+
+  - id: cascade-substation-02
+    category: basic
+    type: cascading_failure
+    target: substation-02
+    description: "substation-02: cascading failure"
+    info: >
+      A cascading failure on the second substation. When both substations fail in quick
+      succession, every device connected downstream loses its grid connection. The homes-affected
+      counter on the dashboard reflects this total loss of supply.
+    params:
+      probability: 0.8
+
+  - id: modbus-substation-01
+    category: basic
+    type: modbus_write
+    target: substation-01
+    description: "substation-01: Modbus write: zero load setpoint"
+    info: >
+      Modbus is a 1979 industrial protocol with no authentication whatsoever. Any device on the
+      same network segment can write to any register. An attacker who can reach the substation
+      controller can zero the load setpoint directly, causing an abrupt and unexplained shutdown.
+      Modbus TCP is still found on internet-exposed industrial systems in 2024.
+    params:
+      register: load_mw
+      value: 0.0
+
+  - id: modbus-substation-02
+    category: basic
+    type: modbus_write
+    target: substation-02
+    description: "substation-02: Modbus write: zero load setpoint"
+    info: >
+      A second Modbus write attack on the other substation. Writing to both simultaneously
+      is exactly what FrostyGoop did in Lviv in January 2024, zeroing heating setpoints across
+      the city. The attackers needed only network access and knowledge of the register map.
+    params:
+      register: load_mw
+      value: 0.0
+
+  - id: replay-meter-003
+    category: basic
+    type: replay
+    target: meter-003
+    description: "meter-003: data freeze / replay (stale readings)"
+    info: >
+      Replay attack: the attacker captures a window of normal sensor readings and retransmits
+      them on a loop, so the control room sees a perfectly normal grid while the actual state
+      changes underneath. Every sophisticated ICS intrusion on record has used some form of
+      data masking during the dwell phase, from Stuxnet to Industroyer to Volt Typhoon.
+    params: {}
+
+  - id: replay-substation-02
+    category: basic
+    type: replay
+    target: substation-02
+    description: "substation-02: data freeze / replay"
+    info: >
+      Replaying stale substation telemetry. If an operator is watching the dashboard when this
+      attack is active, every readout looks normal. The malicious activity is completely invisible
+      until the phase-2 strike is executed and the real state of the grid suddenly becomes visible.
+    params: {}
+
+
+  # ── Nation-State Techniques ────────────────────────────────────────────────
+
+  # Coordinated simultaneous strike, Ukraine 2015 style
+  - id: nation-coordinated-blackout
+    category: nation-state
+    type: coordinated
+    target: _meta
+    description: "Ukraine 2015 style: both substations hit simultaneously"
+    info: >
+      Ukraine, December 2015. Russian military intelligence unit Sandworm cut power to 230,000
+      people across three distribution companies simultaneously. Attackers had been inside the
+      networks for six months via spear-phishing emails, learning topology and pre-staging tools.
+      On the day, operators watched their cursors move across their screens as the attackers took
+      remote control of their workstations and opened breakers one by one.
+    params:
+      attacks:
+        - cascade-substation-01
+        - cascade-substation-02
+
+  - id: nation-coordinated-spoofing
+    category: nation-state
+    type: coordinated
+    target: _meta
+    description: "Mass telemetry spoofing: all meters simultaneously"
+    info: >
+      Coordinated telemetry poisoning across every measurement point simultaneously. When all
+      sensors report false data at once there is no clean reference to cross-check against.
+      This technique mirrors the data-masking phase documented in Industroyer, Volt Typhoon,
+      and numerous other intrusions: operators are kept blind while the attackers manoeuvre
+      into position for the physical strike.
+    params:
+      attacks:
+        - spoof-meter-001
+        - spoof-meter-002
+        - replay-meter-003
+
+  # Long dwell → sudden execution, Industroyer / Sandworm style
+  - id: nation-staged-industroyer
+    category: nation-state
+    type: staged
+    target: _meta
+    description: "Industroyer style: 30s silent replay, then coordinated blackout"
+    info: >
+      Industroyer (Ukraine, December 2016) and its successor Industroyer2 (April 2022, also
+      Ukraine) both followed the same pattern: a silent dwell phase in which attackers learn
+      the grid topology and mask their presence, followed by a sudden, coordinated execution.
+      Industroyer was the first malware since Stuxnet purpose-built to attack the power grid.
+      Both are attributed to Sandworm, a unit of Russian military intelligence (GRU).
+    params:
+      phase_1:
+        duration: 30
+        attack_ids:
+          - replay-meter-003
+          - replay-substation-02
+      phase_2:
+        attack_ids:
+          - cascade-substation-01
+          - cascade-substation-02
+
+  - id: nation-staged-slow-burn
+    category: nation-state
+    type: staged
+    target: _meta
+    description: "Slow burn: 20s spoofing masks access, then demand spike triggers overload"
+    info: >
+      A spoofing-then-overload sequence. While meters report false normal readings, the attacker
+      positions a demand spike. By the time the spike hits and the real grid state becomes
+      visible, operators have been looking at false data for 20 seconds and have no accurate
+      baseline to react from. This deception-then-disruption pattern is a hallmark of
+      operationally mature threat actors.
+    params:
+      phase_1:
+        duration: 20
+        attack_ids:
+          - spoof-meter-001
+          - spoof-meter-002
+      phase_2:
+        attack_ids:
+          - demand-spike-substation-01
+          - demand-spike-ev-001
+
+  # Protection relay bypass, Industroyer/Crashoverride style
+  - id: nation-relay-bypass-01
+    category: nation-state
+    type: relay_bypass
+    target: substation-01
+    description: "substation-01: protection relay disabled (Industroyer style)"
+    info: >
+      Protection relays are the automatic circuit breakers of the grid: they detect faults and
+      isolate equipment before damage spreads. Industroyer / Crashoverride disabled these
+      relays before issuing incorrect switching commands, so the automatic safeguards could not
+      intervene. With the relay bypassed, any subsequent fault goes unchecked and propagates
+      freely through the network.
+    params: {}
+
+  - id: nation-relay-bypass-02
+    category: nation-state
+    type: relay_bypass
+    target: substation-02
+    description: "substation-02: protection relay disabled"
+    info: >
+      Relay bypass on the second substation. With both protection relays disabled, the grid
+      has no automatic defence against faults. Any downstream attack (a cascade, a demand
+      spike, a thermal event) will propagate without the usual automatic isolation that would
+      otherwise limit its reach.
+    params: {}
+
+  # Safety system bypass, Triton/TRISIS style
+  - id: nation-safety-bypass-01
+    category: nation-state
+    type: safety_bypass
+    target: substation-01
+    description: "substation-01: SIS taken offline (Triton/TRISIS style)"
+    info: >
+      Triton / TRISIS (Tasnee petrochemical plant, Saudi Arabia, 2017) was the first malware
+      ever designed specifically to attack Safety Instrumented Systems, the last automated
+      line of defence against physical catastrophe. Taking the SIS offline means that no
+      automatic safe-state shutdown will occur even if sensors detect a dangerous condition.
+      A logic error in the malware accidentally triggered a safe-state shutdown and exposed
+      the intrusion before the attackers could cause an explosion.
+    params: {}
+
+  - id: nation-safety-bypass-02
+    category: nation-state
+    type: safety_bypass
+    target: substation-02
+    description: "substation-02: SIS taken offline"
+    info: >
+      Safety system bypass on the second substation. With both SIS units offline, there is
+      no automated protection anywhere on the grid. Any fault, overload, or thermal event will
+      run to its physical conclusion without the system being able to intervene. This is the
+      precondition for every worst-case ICS attack scenario.
+    params: {}
+
+  # Anti-forensics / wiper, Industroyer2 / CaddyWiper style
+  - id: nation-wiper-substation-01
+    category: nation-state
+    type: wiper
+    target: substation-01
+    description: "substation-01: log/config wipe, device goes dark (Industroyer2 style)"
+    info: >
+      Industroyer2 (Ukraine, April 2022) bundled the CaddyWiper malware to destroy the ICS
+      host computers after the power cut, wiping logs, configurations, and firmware. This
+      served two purposes: delaying grid restoration by destroying the configuration needed to
+      bring equipment back online, and hampering forensic investigation by destroying the
+      evidence of how the attackers operated.
+    params: {}
+
+  - id: nation-wiper-substation-02
+    category: nation-state
+    type: wiper
+    target: substation-02
+    description: "substation-02: log/config wipe"
+    info: >
+      Wiper deployed on the second substation. When both substations are wiped simultaneously,
+      restoration requires physical access, manual reconfiguration, and potentially hardware
+      replacement. Ukraine's grid operators restored power within hours in 2022 partly because
+      they had practised manual switching procedures after the 2015 and 2016 attacks.
+    params: {}
+
+  - id: nation-wiper-all-substations
+    category: nation-state
+    type: coordinated
+    target: _meta
+    description: "Mass wipe: both substations wiped, all connected devices lose grid (Industroyer2 style)"
+    info: >
+      Simultaneous wiper deployment across both substations, mirroring the Industroyer2 attack
+      of April 2022. Every device connected downstream immediately loses grid supply. Recovery
+      requires manual intervention at each site. The wiper also destroys any forensic evidence
+      of the intrusion, making attribution and post-incident analysis far more difficult.
+    params:
+      attacks:
+        - nation-wiper-substation-01
+        - nation-wiper-substation-02
+
+  # ── Stuxnet 2010: Iran Natanz ─────────────────────────────────────────────
+  # Slow physical destruction: falsify cooling setpoints, overheat transformer,
+  # trip thermal protection. Operators see nothing until the equipment fails.
+
+  - id: nation-stuxnet-substation-01
+    category: nation-state
+    type: thermal_stress
+    target: substation-01
+    description: "Stuxnet style: substation-01 transformer overheating (2°C/tick, trips at 112°C)"
+    info: >
+      Stuxnet (Iran, 2010) spent over a year inside Natanz, slowly destroying uranium enrichment
+      centrifuges by making them spin outside their safe operating range while reporting perfectly
+      normal readings to operators. The transformer equivalent: falsify cooling setpoints so the
+      transformer slowly overheats, while the control room sees everything as normal. Equipment
+      fails; operators have no idea why. Jointly attributed to US and Israeli intelligence.
+    params:
+      rate: 2.0
+      trip_threshold: 112.0
+
+  - id: nation-stuxnet-substation-02
+    category: nation-state
+    type: thermal_stress
+    target: substation-02
+    description: "Stuxnet style: substation-02 transformer overheating"
+    info: >
+      Stuxnet-style thermal attack on the second transformer. The orange dashed line on the
+      substation chart tracks the rising transformer temperature. Operators watching the
+      dashboard see load readings that look normal right up until the thermal trip fires and the
+      substation goes offline. This is the "slow burn" that makes Stuxnet-class attacks so
+      difficult to detect and attribute.
+    params:
+      rate: 2.0
+      trip_threshold: 112.0
+
+  - id: nation-stuxnet-both
+    category: nation-state
+    type: coordinated
+    target: _meta
+    description: "Stuxnet style: both substations slowly overheating simultaneously"
+    info: >
+      Both transformers simultaneously subjected to Stuxnet-style thermal stress. Stuxnet
+      itself targeted roughly 1,000 centrifuges at Natanz, degrading Iran's enrichment capacity
+      by an estimated 20% over more than a year before it was discovered by a Belarusian security
+      firm in June 2010, entirely by accident, while investigating an unrelated customer complaint.
+    params:
+      attacks:
+        - nation-stuxnet-substation-01
+        - nation-stuxnet-substation-02
+
+  # ── Volt Typhoon 2023, Chinese APT, US critical infrastructure ────────────
+  # Long-term living-off-the-land: months of silent access, then coordinated
+  # strike. 120s silent dwell (all devices replaying stale data), then blackout.
+
+  - id: nation-volt-typhoon
+    category: nation-state
+    type: staged
+    target: _meta
+    description: "Volt Typhoon: 120s silent dwell (stale data masks access), then total blackout"
+    info: >
+      Volt Typhoon is a Chinese state-sponsored group assessed by the US government to be
+      pre-positioning inside American critical infrastructure for years, not for immediate
+      espionage but to be ready to cause disruption during a future geopolitical crisis, such
+      as a conflict over Taiwan. They use "living off the land" techniques, blending in with
+      normal network traffic and leaving no malware to detect. Microsoft disclosed their presence
+      in May 2023; the US government stated in January 2024 they were still active in networks.
+    params:
+      phase_1:
+        duration: 120
+        attack_ids:
+          - replay-meter-003
+          - replay-substation-02
+          - spoof-meter-001
+          - spoof-meter-002
+      phase_2:
+        attack_ids:
+          - cascade-substation-01
+          - cascade-substation-02
+          - nation-wiper-substation-01
+          - nation-wiper-substation-02
+
+  # ── FrostyGoop 2024, Lviv, Ukraine heating utility ───────────────────────
+  # Modbus TCP direct writes to heating controllers in January.
+  # 600 apartment buildings lost heat. No wiper, purely Modbus native commands.
+
+  - id: nation-frostygoop
+    category: nation-state
+    type: coordinated
+    target: _meta
+    description: "FrostyGoop 2024: Modbus writes zero all load setpoints, heating fails (Lviv style)"
+    info: >
+      FrostyGoop (January 2024, Lviv, Ukraine). Attackers used Modbus TCP (a protocol with no
+      authentication) to write directly to heating controllers at a district heating company,
+      zeroing the setpoints and cutting heat to 600 apartment buildings during a Ukrainian winter.
+      Unlike most ICS malware, FrostyGoop required no specialist exploit: it simply spoke the
+      native language of the controllers. Attributed to Russian intelligence by Ukrainian CERT.
+    params:
+      attacks:
+        - modbus-substation-01
+        - modbus-substation-02
+        - demand-spike-substation-01
+
+  # ── Pipedream / INCONTROLLER 2022: Most advanced ICS framework discovered
+  # Targeted Schneider Electric & OMRON PLCs. Full grid compromise:
+  # enumerate, spoof, spike demand, then simultaneous total shutdown with wiper.
+
+  - id: nation-pipedream
+    category: nation-state
+    type: staged
+    target: _meta
+    description: "Pipedream 2022: recon phase (spoofing + demand spike), then total grid wipe"
+    info: >
+      PIPEDREAM / INCONTROLLER (2022) was the most sophisticated ICS attack framework ever
+      publicly discovered, capable of targeting Schneider Electric and OMRON programmable logic
+      controllers used across energy, water, and manufacturing worldwide. It was disrupted before
+      deployment, the US government and security firms Dragos and Mandiant disclosed it
+      proactively. Attributed to a Russian state actor. Had it been launched, it could have
+      caused physical damage across multiple industrial sectors simultaneously.
+    params:
+      phase_1:
+        duration: 45
+        attack_ids:
+          - spoof-meter-001
+          - spoof-meter-002
+          - spoof-inverter-001
+          - demand-spike-substation-01
+          - frequency-attack-001
+      phase_2:
+        attack_ids:
+          - nation-wiper-substation-01
+          - nation-wiper-substation-02
+          - shutdown-ev-001
+          - shutdown-ev-002
+
+  # ── Colonial Pipeline 2021 ─────────────────────────────────────────────────
+  # Ransomware on IT network caused operator-initiated OT shutdown out of caution.
+  # No direct OT attack, but operational consequence was identical to a cyberattack.
+
+  - id: nation-colonial-pipeline
+    category: nation-state
+    type: coordinated
+    target: _meta
+    description: "Colonial Pipeline style: ransomware encrypts all devices, OT shutdown"
+    info: >
+      Colonial Pipeline (May 2021). The DarkSide ransomware group encrypted Colonial's IT
+      billing and business systems. The OT pipeline control systems were never directly attacked,
+      but Colonial's operators shut down the pipeline themselves out of caution, not knowing
+      how far the intrusion had spread. The US East Coast lost 45% of its fuel supply for six
+      days; petrol stations ran dry across the Southeast. Colonial paid a $4.4 million ransom.
+      The FBI later recovered $2.3 million of it by seizing the attackers' cryptocurrency wallet.
+    params:
+      attacks:
+        - type: ransomware
+          target: substation-01
+        - type: ransomware
+          target: substation-02
+
+  # ── Aurora Vulnerability 2007: Idaho National Laboratory ──────────────────
+  # First public proof-of-concept that cyber could physically destroy rotating equipment.
+  # Rapid open/close of a generator breaker out of phase with the grid causes the rotor
+  # to violently slam against its housing. Destroyed a 2.25 MW generator on camera in 2007.
+
+  - id: aurora-inverter-001
+    category: nation-state
+    type: aurora
+    target: inverter-001
+    description: "inverter-001, Aurora 2007: out-of-phase breaker cycling → violent oscillation → physical destruction"
+    info: >
+      The Aurora Generator Test (Idaho National Laboratory, 2007) was the first public
+      demonstration that a cyber attack could physically destroy rotating electrical equipment.
+      By rapidly opening and closing a generator's circuit breaker out of phase with the grid,
+      the rotor is violently thrown against its housing with each reconnection. The test destroyed
+      a 2.25 MW diesel generator in 21 seconds on camera. The vulnerability affects any
+      synchronous generator connected to the grid and has never been fully patched.
+    params: {}
+
+  - id: aurora-inverter-002
+    category: nation-state
+    type: aurora
+    target: inverter-002
+    description: "inverter-002, Aurora attack: rapid reconnection surge → generator trip"
+    info: >
+      Aurora attack on the second inverter/generator. The vulnerability was discovered by
+      researchers at Idaho National Laboratory and disclosed to the US government in 2007.
+      A redacted version of the original video was leaked and published by CNN in 2007,
+      making it the first publicly visible proof of cyber-physical destruction. The full
+      remediation requires hardware changes (an out-of-step protection relay), not just a
+      software patch.
+    params: {}
+
+  - id: aurora-both
+    category: nation-state
+    type: coordinated
+    target: _meta
+    description: "Aurora 2007, simultaneous out-of-phase attack on both generators (Idaho National Lab)"
+    info: >
+      Simultaneous Aurora attack on both generators. The original 2007 test used a single
+      generator; a real-world attacker with access to multiple generation assets could trigger
+      the same physical destruction across all of them at once, removing all local generation
+      capacity in seconds. The North American Electric Reliability Corporation (NERC) issued a
+      critical infrastructure protection standard for Aurora in 2012, but compliance is uneven.
+    params:
+      attacks:
+        - aurora-inverter-001
+        - aurora-inverter-002
+
+  # ── Predatory Sparrow / Gonjeshke Darande 2022, Iranian steel mills ───────
+  # Attributed to Israeli-linked hacktivist group. Attacked three Iranian steel mills
+  # simultaneously. Caused fire at Khuzestan Steel. OT sabotage: overloaded equipment
+  # with SIS disabled so automatic protection could not respond.
+
+  - id: predatory-sparrow
+    category: nation-state
+    type: staged
+    target: _meta
+    description: "Predatory Sparrow 2022: disable SIS, then thermal+demand overload causes equipment fire (Iranian steel mill style)"
+    info: >
+      Predatory Sparrow (Gonjeshke Darande) attacked three Iranian steel mills simultaneously
+      in June 2022, releasing video evidence of a fire at Khuzestan Steel. The attackers first
+      disabled the safety systems, then overloaded the equipment so it could not automatically
+      protect itself. The group is believed to be linked to Israeli intelligence but has never
+      been officially attributed. It remains one of the few publicly confirmed cases of a
+      cyber attack causing visible physical damage to industrial equipment since Stuxnet.
+    params:
+      phase_1:
+        duration: 15
+        attack_ids:
+          - nation-safety-bypass-01
+          - nation-stuxnet-substation-01
+      phase_2:
+        attack_ids:
+          - demand-spike-substation-01
+          - cascade-substation-01
+
+  # ── Triton / TRISIS Full Kill Chain 2017, Tasnee, Saudi Arabia ─────────────
+  # Safety system bypass followed by deliberate process fault: what the attackers
+  # intended before a logic error triggered a safe-state shutdown and exposed the malware.
+  # Full sequence: SIS offline → create dangerous condition → no automatic recovery.
+
+  - id: triton-full-kill-chain
+    category: nation-state
+    type: staged
+    target: _meta
+    description: "Triton/TRISIS full kill chain: SIS disabled on both substations, then simultaneous cascading fault with no protection"
+    info: >
+      Triton / TRISIS (Tasnee petrochemical plant, Saudi Arabia, 2017) was the first malware
+      purpose-built to attack Safety Instrumented Systems. The intended sequence: take the SIS
+      offline, then deliberately create a dangerous process condition that the SIS would normally
+      prevent. A logic error in the malware accidentally triggered a safe-state shutdown and
+      exposed the intrusion before the attackers could cause an explosion. FireEye attributed
+      Triton to a Russian government research institute in 2018. It is widely considered the
+      most dangerous ICS malware ever deployed, given its explicit intent to cause physical harm.
+    params:
+      phase_1:
+        duration: 20
+        attack_ids:
+          - nation-safety-bypass-01
+          - nation-safety-bypass-02
+      phase_2:
+        attack_ids:
+          - cascade-substation-01
+          - cascade-substation-02

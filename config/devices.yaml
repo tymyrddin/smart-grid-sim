@@ -1,0 +1,74 @@
+mqtt:
+  host: localhost
+  port: 1883
+
+devices:
+  # --- Smart Meters (connected to substations) ---
+  - id: meter-001
+    type: meter
+    update_interval: 1
+    connected_to: substation-01
+    vulnerabilities: [spoofing, shutdown]
+
+  - id: meter-002
+    type: meter
+    update_interval: 1
+    connected_to: substation-01
+    vulnerabilities: [spoofing]
+
+  - id: meter-003
+    type: meter
+    update_interval: 1
+    connected_to: substation-01
+    vulnerabilities: []
+
+  - id: meter-004
+    type: meter
+    update_interval: 1
+    connected_to: substation-02
+    vulnerabilities: [spoofing]
+
+  - id: meter-005
+    type: meter
+    update_interval: 1
+    connected_to: substation-02
+    vulnerabilities: []
+
+  # --- Solar Inverters ---
+  - id: inverter-001
+    type: inverter
+    update_interval: 2
+    connected_to: substation-01
+    vulnerabilities: [spoofing]
+
+  - id: inverter-002
+    type: inverter
+    update_interval: 2
+    connected_to: substation-02
+    vulnerabilities: []
+
+  # --- EV Chargers ---
+  - id: ev-charger-001
+    type: ev_charger
+    update_interval: 2
+    connected_to: substation-01
+    vulnerabilities: [shutdown]
+
+  - id: ev-charger-002
+    type: ev_charger
+    update_interval: 2
+    connected_to: substation-02
+    vulnerabilities: [shutdown]
+
+  # --- Substations (each feeds ~6 feeders × 80 homes) ---
+  - id: substation-01
+    type: substation
+    update_interval: 5
+    homes_per_feeder: 80
+    vulnerabilities: [modbus-write, cascading-failure]
+
+  - id: substation-02
+    type: substation
+    update_interval: 5
+    homes_per_feeder: 80
+    vulnerabilities: [modbus-write]
