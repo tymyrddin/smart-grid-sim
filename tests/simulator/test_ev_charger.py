@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from simulator.devices.ev_charger import EVCharger
 
@@ -114,7 +115,9 @@ def test_session_energy_capped_at_80kwh():
 
 
 def test_voltage_in_realistic_range():
+    # Voltage is gauss(230, 1.5); ±10 V (~6.7σ) keeps this deterministic-enough
+    # to catch a wrong mean or blown-up spread without flaking on tail draws.
     ev = EVCharger("ev-test")
     for _ in range(30):
         t = ev.generate_telemetry()
-        assert 225.0 <= t["voltage"] <= 235.0
+        assert 220.0 <= t["voltage"] <= 240.0

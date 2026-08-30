@@ -1,10 +1,10 @@
 """Tests for stateful attacks: replay, thermal_stress, aurora."""
 import pytest
+
 import attacks.engine as engine
 
 
-# ── replay ────────────────────────────────────────────────────────────────────
-
+# replay
 def test_replay_freezes_state_on_first_call():
     attack = {"type": "replay", "params": {}}
     payload = {"id": "m1", "voltage": 230.0, "status": "online"}
@@ -39,8 +39,7 @@ def test_replay_clear_removes_frozen_state():
     assert "m1" not in engine._frozen_states
 
 
-# ── thermal_stress ────────────────────────────────────────────────────────────
-
+# thermal_stress
 def test_thermal_accumulates_per_tick():
     attack = {"type": "thermal_stress", "params": {"rate": 2.0, "trip_threshold": 999.0}}
     payload = {"id": "s1", "transformer_temp": 65.0}
@@ -85,8 +84,7 @@ def test_thermal_accumulation_persists_across_calls():
     assert engine._thermal_accumulation["s1"] == pytest.approx(6.0)
 
 
-# ── aurora ────────────────────────────────────────────────────────────────────
-
+# aurora
 def test_aurora_odd_tick_zeroes_power():
     attack = {"type": "aurora", "params": {}}
     payload = {"id": "i1", "output_power": 5.0}

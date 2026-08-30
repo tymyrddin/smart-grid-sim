@@ -1,6 +1,6 @@
 """Tests for coordinated and staged meta-attacks."""
-import json
 import pytest
+
 import attacks.engine as engine
 
 
@@ -16,8 +16,7 @@ def mock_client():
     return _MockClient()
 
 
-# ── coordinated ───────────────────────────────────────────────────────────────
-
+# coordinated
 async def test_coordinated_trigger_activates_all_named_sub_attacks():
     all_attacks = {
         "coord": {
@@ -111,10 +110,19 @@ async def test_coordinated_skips_unknown_sub_attack_ids():
     assert not engine._active_attacks
 
 
-# ── staged ────────────────────────────────────────────────────────────────────
-
+# staged
 async def test_staged_trigger_activates_phase1_only(monkeypatch):
-    monkeypatch.setattr(engine.asyncio, "create_task", lambda coro: coro.close() or None)
+    # Suppress the real phase-2 transition: close the coroutine and return a
+    # stand-in task that supports add_done_callback (as the engine now expects).
+    class _FakeTask:
+        def add_done_callback(self, _cb):
+            pass
+
+    def _fake_create_task(coro):
+        coro.close()
+        return _FakeTask()
+
+    monkeypatch.setattr(engine.asyncio, "create_task", _fake_create_task)
 
     all_attacks = {
         "staged": {
@@ -124,7 +132,7 @@ async def test_staged_trigger_activates_phase1_only(monkeypatch):
                 "phase_2": {"attack_ids": ["cascade-b"]},
             },
         },
-        "replay-a":  {"id": "replay-a",  "type": "replay",            "target": "meter-001", "params": {}},
+        "replay-a": {"id": "replay-a",  "type": "replay",            "target": "meter-001", "params": {}},
         "cascade-b": {"id": "cascade-b", "type": "cascading_failure", "target": "sub-01",    "params": {}},
     }
     await engine._handle_staged(all_attacks["staged"], "trigger", all_attacks)
@@ -142,12 +150,12 @@ async def test_staged_stop_clears_both_phases():
                 "phase_2": {"attack_ids": ["cascade-b"]},
             },
         },
-        "replay-a":  {"id": "replay-a",  "type": "replay",            "target": "meter-001", "params": {}},
+        "replay-a": {"id": "replay-a",  "type": "replay",            "target": "meter-001", "params": {}},
         "cascade-b": {"id": "cascade-b", "type": "cascading_failure", "target": "sub-01",    "params": {}},
     }
     # Pre-seed both phases as if they were activated
     engine._active_attacks["meter-001"] = [all_attacks["replay-a"]]
-    engine._active_attacks["sub-01"]    = [all_attacks["cascade-b"]]
+    engine._active_attacks["sub-01"] = [all_attacks["cascade-b"]]
 
     await engine._handle_staged(all_attacks["staged"], "stop", all_attacks)
 

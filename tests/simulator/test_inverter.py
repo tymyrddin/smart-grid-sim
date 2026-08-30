@@ -1,8 +1,6 @@
-import math
-import pytest
 from unittest.mock import patch
 
-from simulator.devices.inverter import SolarInverter, _DAY_CYCLE_SECONDS
+from simulator.devices.inverter import _DAY_CYCLE_SECONDS, SolarInverter
 
 
 def test_state_includes_required_fields():

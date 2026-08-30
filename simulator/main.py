@@ -1,15 +1,16 @@
 import threading
-import yaml
-import paho.mqtt.client as mqtt
 
-from simulator.devices.meter import SmartMeter
-from simulator.devices.inverter import SolarInverter
+import paho.mqtt.client as mqtt
+import yaml
+
 from simulator.devices.ev_charger import EVCharger
+from simulator.devices.inverter import SolarInverter
+from simulator.devices.meter import SmartMeter
 from simulator.devices.substation import Substation
 
 DEVICE_CLASSES = {
-    "meter":      SmartMeter,
-    "inverter":   SolarInverter,
+    "meter": SmartMeter,
+    "inverter": SolarInverter,
     "ev_charger": EVCharger,
     "substation": Substation,
 }
@@ -27,7 +28,7 @@ def build_devices(config: dict) -> list:
         if cls is None:
             print(f"[warn] unknown device type '{d['type']}', skipping {d['id']}")
             continue
-        devices.append(cls(
+        devices.append(cls(  # type: ignore[abstract]  # registry holds concrete subclasses
             device_id=d["id"],
             update_interval=d.get("update_interval", 1),
             vulnerabilities=d.get("vulnerabilities", []),
@@ -39,9 +40,11 @@ def make_client(host: str, port: int) -> mqtt.Client:
     try:
         client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     except AttributeError:
-        client = mqtt.Client()  # paho-mqtt < 2.0
+        client = mqtt.Client()  # paho-mqtt < 2.0, keep til everyone's on 2.x
     client.connect(host, port)
-    client.loop_start()  # background network thread
+    # NB: connect() is blocking here. if the broker is slow to come up in compose
+    # this occasionally hangs on first boot; a retry loop would be nicer someday.
+    client.loop_start()
     return client
 
 
@@ -63,7 +66,7 @@ def main():
     for t in threads:
         t.start()
 
-    print(f"[sim] {len(threads)} device threads running — Ctrl+C to stop")
+    print(f"[sim] {len(threads)} device threads running - Ctrl+C to stop")
     try:
         for t in threads:
             t.join()

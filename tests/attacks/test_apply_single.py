@@ -1,10 +1,10 @@
 """Unit tests for _apply_single — one test per attack type."""
 import pytest
+
 import attacks.engine as engine
 
 
-# ── spoofing ─────────────────────────────────────────────────────────────────
-
+# spoofing
 def test_spoofing_deviates_voltage_within_bounds():
     payload = {"id": "m1", "voltage": 230.0}
     attack = {"type": "spoofing", "params": {"max_deviation": 50}}
@@ -38,8 +38,7 @@ def test_spoofing_skips_zero_values():
     assert result["voltage"] == 0.0
 
 
-# ── shutdown ──────────────────────────────────────────────────────────────────
-
+# shutdown
 def test_shutdown_sets_status_offline():
     payload = {"id": "d1", "status": "online", "power": 7.5}
     result = engine._apply_single({"type": "shutdown", "params": {}}, payload)
@@ -64,8 +63,7 @@ def test_shutdown_zeros_output_power():
     assert result["output_power"] == 0.0
 
 
-# ── cascading_failure ─────────────────────────────────────────────────────────
-
+# cascading_failure
 def test_cascading_failure_sets_fault():
     payload = {"id": "s1", "status": "online", "feeders_active": 6, "load_mw": 5.0, "alarms": []}
     result = engine._apply_single({"type": "cascading_failure", "params": {}}, payload)
@@ -81,8 +79,7 @@ def test_cascading_failure_creates_alarms_list_if_missing():
     assert "CASCADING_FAILURE" in result["alarms"]
 
 
-# ── demand_spike ──────────────────────────────────────────────────────────────
-
+# demand_spike
 def test_demand_spike_multiplies_power():
     payload = {"id": "m1", "power": 5.0}
     result = engine._apply_single({"type": "demand_spike", "params": {"multiplier": 4.0}}, payload)
@@ -108,8 +105,7 @@ def test_demand_spike_ignores_negative_values():
     assert result["power"] == -1.0
 
 
-# ── frequency_attack ──────────────────────────────────────────────────────────
-
+# frequency_attack
 def test_frequency_attack_sets_near_target():
     payload = {"id": "m1", "frequency": 50.0}
     result = engine._apply_single({"type": "frequency_attack", "params": {"target_frequency": 47.5}}, payload)
@@ -128,8 +124,7 @@ def test_frequency_attack_no_effect_without_frequency_field():
     assert "frequency" not in result
 
 
-# ── wiper ─────────────────────────────────────────────────────────────────────
-
+# wiper
 def test_wiper_sets_wiped_status():
     payload = {"id": "s1", "status": "online", "load_mw": 5.0, "bus_voltage": 11000.0}
     result = engine._apply_single({"type": "wiper", "params": {}}, payload)
@@ -152,8 +147,7 @@ def test_wiper_preserves_non_numeric_fields():
     assert result["alarms"] == ["TEST"]
 
 
-# ── relay_bypass ──────────────────────────────────────────────────────────────
-
+# relay_bypass
 def test_relay_bypass_disables_protection():
     payload = {"id": "s1", "alarms": []}
     result = engine._apply_single({"type": "relay_bypass", "params": {}}, payload)
@@ -161,8 +155,7 @@ def test_relay_bypass_disables_protection():
     assert "PROTECTION_RELAY_OFFLINE" in result["alarms"]
 
 
-# ── safety_bypass ─────────────────────────────────────────────────────────────
-
+# safety_bypass
 def test_safety_bypass_takes_sis_offline():
     payload = {"id": "s1", "alarms": []}
     result = engine._apply_single({"type": "safety_bypass", "params": {}}, payload)
@@ -170,8 +163,7 @@ def test_safety_bypass_takes_sis_offline():
     assert "SIS_OFFLINE" in result["alarms"]
 
 
-# ── ransomware ────────────────────────────────────────────────────────────────
-
+# ransomware
 def test_ransomware_encrypts_status():
     payload = {"id": "s1", "status": "online", "load_mw": 5.0, "voltage": 230.0}
     result = engine._apply_single({"type": "ransomware", "params": {}}, payload)
@@ -187,8 +179,7 @@ def test_ransomware_nullifies_telemetry_fields():
         assert result[field] is None, f"{field} should be None after ransomware"
 
 
-# ── modbus_write ──────────────────────────────────────────────────────────────
-
+# modbus_write
 def test_modbus_write_overrides_target_register():
     payload = {"id": "s1", "load_mw": 5.0}
     attack = {"type": "modbus_write", "params": {"register": "load_mw", "value": 0.0}}

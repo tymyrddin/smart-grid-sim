@@ -1,10 +1,8 @@
-import pytest
-from simulator.main import build_devices, DEVICE_CLASSES
-from simulator.devices.meter import SmartMeter
-from simulator.devices.inverter import SolarInverter
 from simulator.devices.ev_charger import EVCharger
+from simulator.devices.inverter import SolarInverter
+from simulator.devices.meter import SmartMeter
 from simulator.devices.substation import Substation
-
+from simulator.main import DEVICE_CLASSES, build_devices
 
 SAMPLE_CONFIG = {
     "devices": [

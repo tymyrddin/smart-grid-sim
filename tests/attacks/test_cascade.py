@@ -1,6 +1,8 @@
 """Tests for cascade propagation logic."""
 import json
+
 import pytest
+
 import attacks.engine as engine
 
 
@@ -16,11 +18,10 @@ def mock_client():
     return _MockClient()
 
 
-# ── cascade_to_connected ──────────────────────────────────────────────────────
-
+# cascade_to_connected
 async def test_cascade_publishes_shadow_for_each_child(mock_client):
     engine._topology["sub-01"] = ["meter-001", "meter-002"]
-    engine._device_states["sub-01"]   = {"id": "sub-01", "feeders_active": 4}
+    engine._device_states["sub-01"] = {"id": "sub-01", "feeders_active": 4}
     engine._device_states["meter-001"] = {"id": "meter-001", "type": "meter", "voltage": 230.0}
     engine._device_states["meter-002"] = {"id": "meter-002", "type": "meter", "voltage": 230.0}
 
@@ -33,7 +34,7 @@ async def test_cascade_publishes_shadow_for_each_child(mock_client):
 
 async def test_cascade_sets_no_grid_status(mock_client):
     engine._topology["sub-01"] = ["meter-001"]
-    engine._device_states["sub-01"]    = {"id": "sub-01", "feeders_active": 4}
+    engine._device_states["sub-01"] = {"id": "sub-01", "feeders_active": 4}
     engine._device_states["meter-001"] = {"id": "meter-001", "type": "meter",
                                           "voltage": 230.0, "power": 5.0}
 
@@ -47,7 +48,7 @@ async def test_cascade_sets_no_grid_status(mock_client):
 
 async def test_cascade_zeros_all_power_fields(mock_client):
     engine._topology["sub-01"] = ["inverter-001"]
-    engine._device_states["sub-01"]      = {"id": "sub-01", "feeders_active": 4}
+    engine._device_states["sub-01"] = {"id": "sub-01", "feeders_active": 4}
     engine._device_states["inverter-001"] = {
         "id": "inverter-001", "type": "inverter",
         "output_power": 5.0, "ac_voltage": 230.0, "dc_voltage": 380.0, "frequency": 50.0,
@@ -62,8 +63,8 @@ async def test_cascade_zeros_all_power_fields(mock_client):
 
 async def test_cascade_stops_ev_charging(mock_client):
     engine._topology["sub-01"] = ["ev-001"]
-    engine._device_states["sub-01"]  = {"id": "sub-01", "feeders_active": 4}
-    engine._device_states["ev-001"]  = {"id": "ev-001", "type": "ev_charger",
+    engine._device_states["sub-01"] = {"id": "sub-01", "feeders_active": 4}
+    engine._device_states["ev-001"] = {"id": "ev-001", "type": "ev_charger",
                                         "charging": True, "power": 11.0}
 
     await engine.cascade_to_connected(mock_client, "sub-01", {})
@@ -85,7 +86,7 @@ async def test_cascade_skips_devices_with_no_state(mock_client):
 
 async def test_cascade_publishes_alarm_event(mock_client):
     engine._topology["sub-01"] = ["meter-001"]
-    engine._device_states["sub-01"]    = {"id": "sub-01", "feeders_active": 4}
+    engine._device_states["sub-01"] = {"id": "sub-01", "feeders_active": 4}
     engine._device_states["meter-001"] = {"id": "meter-001", "type": "meter", "voltage": 230.0}
 
     await engine.cascade_to_connected(mock_client, "sub-01", {"sub-01": 80})
@@ -103,8 +104,7 @@ async def test_cascade_no_publish_when_no_children(mock_client):
     assert len(mock_client.published) == 0
 
 
-# ── _has_fault_attack ─────────────────────────────────────────────────────────
-
+# _has_fault_attack
 def test_has_fault_attack_true_for_cascading_failure():
     engine._active_attacks["sub-01"] = [{"type": "cascading_failure"}]
     assert engine._has_fault_attack("sub-01") is True
@@ -134,8 +134,7 @@ def test_has_fault_attack_false_for_replay():
     assert engine._has_fault_attack("sub-01") is False
 
 
-# ── _get_parent ───────────────────────────────────────────────────────────────
-
+# _get_parent
 def test_get_parent_returns_correct_parent():
     engine._topology["sub-01"] = ["meter-001", "meter-002"]
     assert engine._get_parent("meter-001") == "sub-01"

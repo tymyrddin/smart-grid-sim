@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 
 
 class BaseDevice(ABC):
-    def __init__(self, device_id: str, device_type: str, update_interval: float = 1.0, vulnerabilities: list = None):
+    def __init__(self, device_id: str, device_type: str,
+                 update_interval: float = 1.0, vulnerabilities: list | None = None):
         self.id = device_id
         self.type = device_type
         self.update_interval = update_interval
@@ -28,4 +29,5 @@ class BaseDevice(ABC):
         print(f"[device] {self.id} ({self.type}) → {topic}")
         while True:
             client.publish(topic, json.dumps(self.state()))
+            # client.publish(topic + "/heartbeat", "1")  # nothing recieved these, dropped it
             time.sleep(self.update_interval)

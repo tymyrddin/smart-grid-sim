@@ -9,13 +9,9 @@ The attack engine sits between the device simulator and the dashboard. Every pie
 
 Attacks can be triggered from the dashboard or via the REST API. Clicking Stop clears the attack and devices return to normal on their next update.
 
----
-
 ## Basic attack techniques
 
 These are the building-block techniques. Nation-state scenarios below combine them into multi-stage operations.
-
----
 
 ### Telemetry spoofing
 
@@ -25,8 +21,6 @@ What it means: the attacker has modified the sensor data before it reaches the o
 
 Targets: `meter-001`, `meter-002`, `inverter-001`
 
----
-
 ### Device shutdown
 
 What the dashboard shows: the device card turns red and goes offline. Power output drops to zero.
@@ -35,8 +29,6 @@ What it means: a remote shutdown command was sent over the network to the device
 
 Targets: `ev-charger-001`, `ev-charger-002`
 
----
-
 ### Demand spike
 
 What the dashboard shows: load or power readings multiply, and meters and substations show demand several times higher than normal. Overload alarms fire.
@@ -44,8 +36,6 @@ What the dashboard shows: load or power readings multiply, and meters and substa
 What it means: false demand data is injected into the control system. The grid's automatic load-management logic sees a huge demand surge and responds accordingly, potentially shedding load from other customers, tripping protection relays, or causing genuine overloads as the system tries to compensate for a problem that does not exist.
 
 Targets: `meter-001`, `ev-charger-001`, `substation-01`
-
----
 
 ### Frequency attack
 
@@ -57,8 +47,6 @@ The simulation shows two variants: a dangerous drop to 47.5 Hz and a dangerous s
 
 Targets: `meter-001`, `meter-002`
 
----
-
 ### Cascading failure
 
 What the dashboard shows: a substation faults and goes red. Immediately, every meter, charger, and inverter connected to it shows `NO GRID` with all readings dropping to zero. The homes-affected counter jumps.
@@ -66,8 +54,6 @@ What the dashboard shows: a substation faults and goes red. Immediately, every m
 What it means: when a substation trips, it takes down everything it feeds. Homes, businesses, EV chargers, solar exports, all cut simultaneously. The cascade is the intended outcome: one targeted attack causes a much larger blackout than the directly-attacked device would suggest.
 
 Targets: `substation-01`, `substation-02`
-
----
 
 ### Modbus write
 
@@ -77,8 +63,6 @@ What it means: Modbus is an industrial control protocol from 1979 that is still 
 
 Targets: `substation-01`, `substation-02`
 
----
-
 ### Data replay (freeze)
 
 What the dashboard shows: a device's readings stop changing. The numbers stay identical tick after tick, a telltale flatline in the chart.
@@ -86,8 +70,6 @@ What the dashboard shows: a device's readings stop changing. The numbers stay id
 What it means: the attacker has captured a snapshot of normal device output and is replaying it on a loop. The operator sees steady, reassuring data. Meanwhile, the real device could be offline, on fire, or under active attack, and nobody knows. This is a classic pre-attack technique: freeze the sensors before doing something the sensors would otherwise detect.
 
 Targets: `meter-003`, `substation-02`
-
----
 
 ### Protection relay bypass
 
@@ -97,8 +79,6 @@ What it means: protection relays are the circuit breakers of the grid. They disc
 
 Targets: `substation-01`, `substation-02`
 
----
-
 ### Safety system bypass (SIS offline)
 
 What the dashboard shows: the device card shows `SIS OFFLINE` in purple.
@@ -106,8 +86,6 @@ What the dashboard shows: the device card shows `SIS OFFLINE` in purple.
 What it means: a Safety Instrumented System (SIS) is the last line of automated defence. It monitors for dangerous physical conditions and takes independent action to prevent equipment destruction or harm to people. Taking it offline means that if something goes wrong, nothing will automatically stop it. The process can now reach a dangerous state with no safety net. This is the defining characteristic of Triton/TRISIS-style attacks.
 
 Targets: `substation-01`, `substation-02`
-
----
 
 ### Wiper
 
@@ -117,8 +95,6 @@ What it means: a destructive payload has overwritten the device's configuration,
 
 Targets: `substation-01`, `substation-02`
 
----
-
 ### Ransomware
 
 What the dashboard shows: the device card turns burnt orange and shows `ENCRYPTED`. All telemetry values go blank.
@@ -127,13 +103,9 @@ What it means: ransomware has encrypted the device's software and data. The devi
 
 Targets: `substation-01`, `substation-02`
 
----
-
 ## Nation-state scenarios
 
 These are documented incidents or techniques attributed to specific threat actors. Each scenario combines multiple basic attacks into a realistic operation.
-
----
 
 ### Ukraine 2015, coordinated blackout
 `nation-coordinated-blackout`
@@ -142,14 +114,10 @@ The first confirmed cyberattack to cause a civilian power outage. In December 20
 
 What to watch: both substation cards go red simultaneously. Everything connected to them loses grid supply at the same instant.
 
----
-
 ### Mass telemetry spoofing, coordinated
 `nation-coordinated-spoofing`
 
 Simultaneous manipulation of all meter telemetry plus replay on a third meter. The operator's entire measurement picture is falsified at once, and no single anomaly stands out.
-
----
 
 ### Industroyer / Sandworm style, staged
 `nation-staged-industroyer`
@@ -158,14 +126,10 @@ Industroyer, used in the December 2016 Ukraine blackout, spent time establishing
 
 What to watch: phase 1 looks completely normal on the dashboard, that is the point. Phase 2 hits without any warning.
 
----
-
 ### Slow burn, staged
 `nation-staged-slow-burn`
 
 Spoofing on two meters masks operator visibility for 20 seconds, then a demand spike on the substation and EV charger triggers overload conditions the operator cannot correctly interpret because their sensor data is unreliable.
-
----
 
 ### Protection relay disabled, Industroyer/CRASHOVERRIDE style
 `nation-relay-bypass-01`, `nation-relay-bypass-02`

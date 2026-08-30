@@ -1,35 +1,33 @@
-"""
-Background MQTT client for the dashboard.
+"""Background MQTT client for the dashboard.
 
-Subscribes to:
-  shadow/devices/#   — device telemetry (modified by attack engine)
-  events/alarms      — structured SCADA-style alarms from the engine
+Subscribes to shadow/devices/# (telemetry after the attack engine) and
+events/alarms (structured alarms from the engine).
 """
 
 import json
 import threading
-from collections import deque, defaultdict
+from collections import defaultdict, deque
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
 
 _DEVICE_METRIC = {
-    "meter":      "voltage",
+    "meter": "voltage",
     "ev_charger": "power",
-    "inverter":   "output_power",
+    "inverter": "output_power",
     "substation": "load_mw",
 }
 
-device_states:  dict  = {}
-event_log:      deque = deque(maxlen=80)
-metric_history: dict  = defaultdict(lambda: deque(maxlen=90))
-temp_history:   dict  = defaultdict(lambda: deque(maxlen=90))  # substation transformer_temp
+device_states: dict = {}
+event_log: deque = deque(maxlen=80)
+metric_history: dict = defaultdict(lambda: deque(maxlen=90))
+# temp_history is kept seperate from metric_history — leftover from the stuxnet
+# transformer chart. could probably fold it back in but it works, leaving it.
+temp_history: dict = defaultdict(lambda: deque(maxlen=90))
 _lock = threading.Lock()
 
 _client = None
 
-
-# ── Public read accessors ───────────────────────────────────────────────────
 
 def get_states() -> dict:
     with _lock:
@@ -56,15 +54,11 @@ def publish(topic: str, payload: dict) -> None:
         _client.publish(topic, json.dumps(payload))
 
 
-# ── MQTT callbacks ──────────────────────────────────────────────────────────
-
 def _on_message(client, userdata, msg):
     topic = msg.topic
-
     if topic == "events/alarms":
         _handle_alarm(msg.payload)
         return
-
     if topic.startswith("shadow/devices/"):
         _handle_telemetry(msg.payload)
 
@@ -77,11 +71,11 @@ def _handle_alarm(raw: bytes) -> None:
 
     with _lock:
         event_log.append({
-            "time":     event.get("time", datetime.now().strftime("%H:%M:%S")),
-            "source":   event.get("source", "SYSTEM"),
+            "time": event.get("time", datetime.now().strftime("%H:%M:%S")),
+            "source": event.get("source", "SYSTEM"),
             "severity": event.get("severity", "INFO"),
-            "message":  event.get("message", ""),
-            "engine":   True,   # rendered differently — full message, not inferred
+            "message": event.get("message", ""),
+            "engine": True,
         })
 
 
@@ -111,37 +105,36 @@ def _handle_telemetry(raw: bytes) -> None:
             if value is not None:
                 metric_history[device_id].append((ts.strftime("%H:%M:%S"), float(value)))
 
-        # Track transformer temperature for substations (shows Stuxnet heat-up)
         if device_type == "substation" and not payload.get("_wiped"):
             temp = payload.get("transformer_temp")
             if temp is not None:
                 temp_history[device_id].append((ts.strftime("%H:%M:%S"), float(temp)))
 
-        # Only log status transitions — engine events carry the detail
+        # Only log status transitions; engine events carry the detail.
         new_status = payload.get("status", "online")
-        if new_status != prev_status and new_status not in ("online",):
+        if new_status != prev_status and new_status != "online":
             event_log.append({
-                "time":     ts.strftime("%H:%M:%S"),
-                "source":   device_id.upper(),
+                "time": ts.strftime("%H:%M:%S"),
+                "source": device_id.upper(),
                 "severity": _status_severity(new_status),
-                "message":  _status_message(payload),
-                "engine":   False,
+                "message": _status_message(payload),
+                "engine": False,
             })
 
 
 def _status_severity(status: str) -> str:
     return {
-        "fault":   "CRITICAL",
+        "fault": "CRITICAL",
         "offline": "CRITICAL",
         "no_grid": "CRITICAL",
-        "wiped":   "CRITICAL",
+        "wiped": "CRITICAL",
     }.get(status, "WARNING")
 
 
 def _status_message(payload: dict) -> str:
     status = payload.get("status", "online")
     if status == "wiped":
-        return "Device went dark — no telemetry. Possible wiper."
+        return "Device went dark - no telemetry. Possible wiper."
     if status == "no_grid":
         reason = payload.get("_cascade_reason", "de-energised")
         return f"Supply lost. Substation {payload.get('_cascaded_from', '?')} {reason}."
@@ -152,8 +145,6 @@ def _status_message(payload: dict) -> str:
         return "Device offline. Last known state preserved."
     return f"Status changed to {status}."
 
-
-# ── Start ───────────────────────────────────────────────────────────────────
 
 def start(host: str = "localhost", port: int = 1883) -> None:
     global _client

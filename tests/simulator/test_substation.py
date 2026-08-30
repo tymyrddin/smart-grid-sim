@@ -1,8 +1,7 @@
 import math
-import pytest
 from unittest.mock import patch
 
-from simulator.devices.substation import Substation, _DAY_CYCLE_SECONDS
+from simulator.devices.substation import Substation
 
 
 def test_state_includes_required_fields():
@@ -63,7 +62,7 @@ def test_opposite_phase_offsets_produce_different_loads():
     sub1._phase_offset = 0.0
     sub2._phase_offset = math.pi
 
-    # At t=75s, sin(π * 75/300 + 0) ≠ sin(π * 75/300 + π)
+    # At t=75s the phase is 2π * 75/300 = π/2, so sin(π/2) vs sin(π/2 + π) = 1 vs -1
     with patch("simulator.devices.substation.time.time", return_value=75.0):
         t1 = sub1.generate_telemetry()
         t2 = sub2.generate_telemetry()

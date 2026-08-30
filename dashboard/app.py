@@ -1,31 +1,32 @@
 """
-Smart Grid SimLab — Dashboard
+Smart Grid SimLab - Dashboard
 Flask + Plotly Dash 2.x
 """
 
-import yaml
 import dash
-from dash import dcc, html, Input, Output, State, ctx
-from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-from flask import request, jsonify
+import yaml
+from dash import Input, Output, State, ctx, dcc, html
+from flask import jsonify, request
+from plotly.subplots import make_subplots
 
 from dashboard import mqtt_client
 
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
+
+def _read_yaml(path: str) -> dict:
+    with open(path) as f:
+        return yaml.safe_load(f) or {}
+
 
 def _load_attack_options(path: str = "config/attacks.yaml") -> list:
     try:
-        with open(path) as f:
-            config = yaml.safe_load(f)
-        attacks = config.get("attacks", [])
-    except Exception:
+        config = _read_yaml(path)
+    except (OSError, yaml.YAMLError):
         return []
+    attacks = config.get("attacks", [])
 
     category_labels = {
-        "basic":        "── Basic Attacks ──────────────────────",
+        "basic": "── Basic Attacks ──────────────────────",
         "nation-state": "── Nation-State Techniques ─────────────",
     }
     groups: dict[str, list] = {}
@@ -58,51 +59,44 @@ ATTACK_OPTIONS = _load_attack_options()
 # homes_per_feeder from config (default 80)
 def _load_homes_per_feeder(path: str = "config/devices.yaml") -> dict:
     try:
-        with open(path) as f:
-            config = yaml.safe_load(f)
-        return {
-            d["id"]: d.get("homes_per_feeder", 80)
-            for d in config.get("devices", [])
-            if d["type"] == "substation"
-        }
-    except Exception:
+        config = _read_yaml(path)
+    except (OSError, yaml.YAMLError):
         return {}
+    return {
+        d["id"]: d.get("homes_per_feeder", 80)
+        for d in config.get("devices", [])
+        if d.get("type") == "substation"
+    }
 
 
 HOMES_PER_FEEDER = _load_homes_per_feeder()
 
-# ---------------------------------------------------------------------------
-# Visual constants
-# ---------------------------------------------------------------------------
 
 STATUS_COLOR = {
-    "online":    "#27ae60",
-    "offline":   "#c0392b",
-    "fault":     "#e74c3c",
-    "no_grid":   "#8e44ad",
-    "wiped":     "#636e72",
+    "online": "#27ae60",
+    "offline": "#c0392b",
+    "fault": "#e74c3c",
+    "no_grid": "#8e44ad",
+    "wiped": "#636e72",
     "encrypted": "#d35400",
-    "unknown":   "#7f8c8d",
+    "unknown": "#7f8c8d",
 }
 COMPROMISED_COLOR = "#e67e22"
 
-TYPE_ICON  = {"meter": "⚡", "inverter": "☀", "ev_charger": "🔌", "substation": "⬡"}
+TYPE_ICON = {"meter": "⚡", "inverter": "☀", "ev_charger": "🔌", "substation": "⬡"}
 TYPE_LABEL = {"meter": "Meters", "inverter": "Inverters", "ev_charger": "EV Chargers", "substation": "Substations"}
-TYPE_UNIT  = {"meter": "V", "inverter": "kW", "ev_charger": "kW", "substation": "MW"}
+TYPE_UNIT = {"meter": "V", "inverter": "kW", "ev_charger": "kW", "substation": "MW"}
 TYPE_FIELD = {"meter": "voltage", "inverter": "output_power", "ev_charger": "power", "substation": "load_mw"}
 
-_BG       = "#0f3460"
+_BG = "#0f3460"
 _PANEL_BG = "#16213e"
-_CARD_BG  = "#0d2137"
-_MONO     = "'Courier New', monospace"
+_CARD_BG = "#0d2137"
+_MONO = "'Courier New', monospace"
 
 _PANEL = {"backgroundColor": _PANEL_BG, "borderRadius": "8px", "padding": "16px", "marginBottom": "16px"}
-_H3    = {"color": "#95a5a6", "margin": "0 0 12px 0", "fontSize": "13px",
+_H3 = {"color": "#95a5a6", "margin": "0 0 12px 0", "fontSize": "13px",
           "textTransform": "uppercase", "letterSpacing": "1px"}
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def _card_color(state: dict) -> tuple[str, str]:
     """Returns (border_color, status_label)."""
@@ -119,13 +113,13 @@ def _card_color(state: dict) -> tuple[str, str]:
 
 
 def _make_card(state: dict) -> html.Div:
-    device_id   = state.get("id", "?")
+    device_id = state.get("id", "?")
     device_type = state.get("type", "?")
     border, label = _card_color(state)
 
     field = TYPE_FIELD.get(device_type)
-    unit  = TYPE_UNIT.get(device_type, "")
-    val   = state.get(field)
+    unit = TYPE_UNIT.get(device_type, "")
+    val = state.get(field)
     metric = f"{field}: {val} {unit}" if val is not None else ""
 
     cascaded = state.get("_cascaded_from")
@@ -158,7 +152,7 @@ def _homes_affected(states: dict) -> int:
     total = 0
     for s in states.values():
         if s.get("type") == "substation" and s.get("status") in ("fault", "offline"):
-            feeders = s.get("feeders_active", 0) or s.get("_last_feeders", 6)
+            feeders = s.get("feeders_active", 0) or 6
             hpf = HOMES_PER_FEEDER.get(s.get("id", ""), 80)
             total += feeders * hpf
         elif s.get("status") == "no_grid":
@@ -166,18 +160,7 @@ def _homes_affected(states: dict) -> int:
     return total
 
 
-def _chart_bg() -> dict:
-    return dict(paper_bgcolor=_PANEL_BG, plot_bgcolor=_CARD_BG,
-                font={"color": "#ecf0f1", "size": 10},
-                margin={"l": 44, "r": 8, "t": 30, "b": 40},
-                legend={"bgcolor": "rgba(0,0,0,0)", "font": {"size": 9}},
-                xaxis={"gridcolor": "#1e3a5f"}, yaxis={"gridcolor": "#1e3a5f"})
-
-# ---------------------------------------------------------------------------
-# App layout
-# ---------------------------------------------------------------------------
-
-app    = dash.Dash(__name__)
+app = dash.Dash(__name__)
 server = app.server
 app.title = "Smart Grid SimLab"
 
@@ -218,7 +201,7 @@ app.layout = html.Div(
         # Alert banner (hidden unless critical)
         html.Div(id="alert-banner"),
 
-        # Attack controls + event log (side by side) — above device grid for better UX
+        # Attack controls + event log (side by side), above device grid for better UX
         html.Div(style={"display": "flex", "gap": "16px", "marginBottom": "16px"}, children=[
 
             html.Div(style={**_PANEL, "flex": "1", "marginBottom": 0}, children=[
@@ -261,15 +244,13 @@ app.layout = html.Div(
                       config={"displayModeBar": False}),
         ]),
 
+        # 1000ms. tried 500 for smoother charts once, pegged a whole core, put it back.
         dcc.Interval(id="interval", interval=1000, n_intervals=0),
     ],
 )
 
-# ---------------------------------------------------------------------------
-# Callbacks
-# ---------------------------------------------------------------------------
 
-_PAUSE_STYLE  = {"backgroundColor": "#27ae60", "color": "#fff",
+_PAUSE_STYLE = {"backgroundColor": "#27ae60", "color": "#fff",
                  "border": "none", "padding": "6px 14px", "borderRadius": "4px",
                  "cursor": "pointer", "fontFamily": _MONO, "fontSize": "12px", "whiteSpace": "nowrap"}
 _RESUME_STYLE = {"backgroundColor": "#2c3e50", "color": "#ecf0f1",
@@ -287,7 +268,7 @@ _RESUME_STYLE = {"backgroundColor": "#2c3e50", "color": "#ecf0f1",
 )
 def toggle_pause(_, is_disabled):
     if is_disabled:
-        return False, "⏸  Pause",  _RESUME_STYLE
+        return False, "⏸  Pause", _RESUME_STYLE
     return True, "▶  Resume", _PAUSE_STYLE
 
 
@@ -300,10 +281,10 @@ def toggle_pause(_, is_disabled):
 def update_devices(_):
     states = mqtt_client.get_states()
 
-    online      = sum(1 for s in states.values() if s.get("status") == "online" and not s.get("_compromised"))
+    online = sum(1 for s in states.values() if s.get("status") == "online" and not s.get("_compromised"))
     compromised = sum(1 for s in states.values() if s.get("_compromised"))
-    offline     = sum(1 for s in states.values() if s.get("status") in ("offline", "fault", "no_grid"))
-    homes       = _homes_affected(states)
+    offline = sum(1 for s in states.values() if s.get("status") in ("offline", "fault", "no_grid"))
+    homes = _homes_affected(states)
 
     summary = html.Div([
         html.Div([html.Span("🟢 ", style={"color": "#27ae60"}),
@@ -352,9 +333,9 @@ def update_devices(_):
     Input("interval", "n_intervals"),
 )
 def update_chart(_):
-    history      = mqtt_client.get_metric_history()
+    history = mqtt_client.get_metric_history()
     temp_history = mqtt_client.get_temp_history()
-    states       = mqtt_client.get_states()
+    states = mqtt_client.get_states()
 
     # Group device_ids by type
     types_order = ["meter", "inverter", "ev_charger", "substation"]
@@ -365,10 +346,10 @@ def update_chart(_):
             type_groups[t].append(device_id)
 
     titles = [
-        f"Smart Meters — voltage (V)",
-        f"Inverters — output (kW)",
-        f"EV Chargers — power (kW)",
-        f"Substations — load (MW)",
+        "Smart Meters — voltage (V)",
+        "Inverters — output (kW)",
+        "EV Chargers — power (kW)",
+        "Substations — load (MW)",
     ]
     fig = make_subplots(rows=2, cols=2, subplot_titles=titles,
                         shared_xaxes=False, vertical_spacing=0.18, horizontal_spacing=0.1)
@@ -380,11 +361,11 @@ def update_chart(_):
             data = history.get(device_id, [])
             if not data:
                 continue
-            times  = [d[0] for d in data]
+            times = [d[0] for d in data]
             values = [d[1] for d in data]
 
-            state  = states.get(device_id, {})
-            color  = None
+            state = states.get(device_id, {})
+            color = None
             if state.get("_compromised"):
                 color = COMPROMISED_COLOR
             elif state.get("status") in ("offline", "fault", "no_grid"):
@@ -405,7 +386,7 @@ def update_chart(_):
         data = temp_history.get(device_id, [])
         if not data:
             continue
-        times  = [d[0] for d in data]
+        times = [d[0] for d in data]
         values = [d[1] for d in data]
         # Only show if temperature is elevated (attack active) or briefly after
         if max(values) > 70:
@@ -437,8 +418,8 @@ def update_chart(_):
 
 _SEV_COLOR = {
     "CRITICAL": "#e74c3c",
-    "WARNING":  "#e67e22",
-    "INFO":     "#3498db",
+    "WARNING": "#e67e22",
+    "INFO": "#3498db",
 }
 
 
@@ -453,7 +434,7 @@ def update_events(_):
 
     items = []
     for e in reversed(events):
-        sev   = e.get("severity", "WARNING")
+        sev = e.get("severity", "WARNING")
         color = _SEV_COLOR.get(sev, "#7f8c8d")
         items.append(html.Div(
             style={"marginBottom": "6px", "padding": "5px 8px",
@@ -461,8 +442,9 @@ def update_events(_):
             children=[
                 html.Div(style={"display": "flex", "gap": "6px", "alignItems": "baseline"}, children=[
                     html.Span(f"[{e['time']}]", style={"color": "#7f8c8d", "fontSize": "10px"}),
-                    html.Span(sev,              style={"color": color, "fontWeight": "bold", "fontSize": "10px"}),
-                    html.Span(e.get("source", ""), style={"color": "#ecf0f1", "fontWeight": "bold", "fontSize": "11px"}),
+                    html.Span(sev, style={"color": color, "fontWeight": "bold", "fontSize": "10px"}),
+                    html.Span(e.get("source", ""),
+                              style={"color": "#ecf0f1", "fontWeight": "bold", "fontSize": "11px"}),
                 ]),
                 html.Div(e.get("message", ""), style={"color": "#bdc3c7", "fontSize": "11px", "marginTop": "2px"}),
             ],
@@ -486,24 +468,20 @@ def handle_attack_button(_t, _s, attack_id):
     return f"✓  {attack_id}  {verb}"
 
 
-# ---------------------------------------------------------------------------
-# REST endpoint
-# ---------------------------------------------------------------------------
-
+# No authentication by design: this is a local demo where triggering attacks is
+# the whole point. The control interface (this endpoint and the control/attacks
+# MQTT topic) is unauthenticated, so run it only on a trusted network — never
+# expose the dashboard or broker to the public internet. See README.
 @server.route("/attack/trigger", methods=["POST"])
 def rest_trigger():
     data = request.get_json(silent=True) or {}
     attack_id = data.get("attack_id")
-    action    = data.get("action", "trigger")
+    action = data.get("action", "trigger")
     if not attack_id:
         return jsonify({"error": "attack_id required"}), 400
     mqtt_client.publish(f"control/attacks/{attack_id}", {"action": action, "attack_id": attack_id})
     return jsonify({"status": "ok", "attack_id": attack_id, "action": action})
 
-
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     import os

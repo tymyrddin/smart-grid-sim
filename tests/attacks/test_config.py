@@ -1,7 +1,7 @@
 """Tests for config-loading functions: load_attacks, load_topology, load_homes."""
 from unittest.mock import mock_open, patch
-import attacks.engine as engine
 
+import attacks.engine as engine
 
 ATTACKS_YAML = """
 attacks:

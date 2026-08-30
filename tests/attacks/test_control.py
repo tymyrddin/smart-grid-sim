@@ -1,14 +1,16 @@
 """Tests for handle_control — the MQTT control message dispatcher."""
 import json
+
 import pytest
+
 import attacks.engine as engine
 
 
 @pytest.fixture
 def sample_attacks():
     return {
-        "spoof-m1":   {"id": "spoof-m1",   "type": "spoofing",  "target": "meter-001", "params": {"max_deviation": 50}},
-        "replay-m2":  {"id": "replay-m2",  "type": "replay",    "target": "meter-002", "params": {}},
+        "spoof-m1": {"id": "spoof-m1",   "type": "spoofing",  "target": "meter-001", "params": {"max_deviation": 50}},
+        "replay-m2": {"id": "replay-m2",  "type": "replay",    "target": "meter-002", "params": {}},
         "cascade-s1": {"id": "cascade-s1", "type": "cascading_failure", "target": "sub-01", "params": {}},
     }
 
@@ -46,14 +48,13 @@ async def test_invalid_json_is_silently_ignored(sample_attacks):
 
 async def test_stop_clears_replay_frozen_state(sample_attacks):
     engine._active_attacks["meter-002"] = [sample_attacks["replay-m2"]]
-    engine._frozen_states["meter-002"]  = {"voltage": 230.0}
+    engine._frozen_states["meter-002"] = {"voltage": 230.0}
     payload = json.dumps({"attack_id": "replay-m2", "action": "stop"}).encode()
     await engine.handle_control(payload, sample_attacks)
     assert "meter-002" not in engine._frozen_states
 
 
-# ── apply_attacks ─────────────────────────────────────────────────────────────
-
+# apply_attacks
 def test_apply_attacks_marks_compromised(sample_attacks):
     engine._active_attacks["meter-001"] = [sample_attacks["spoof-m1"]]
     result = engine.apply_attacks("meter-001", {"id": "meter-001", "voltage": 230.0})
