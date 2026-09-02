@@ -67,6 +67,14 @@ def _has_fault_attack(device_id: str) -> bool:
                for a in _active_attacks.get(device_id, []))
 
 
+def _homes_behind(sub_id: str, homes_map: dict | None = None) -> int:
+    # _device_states holds what the simulator sent, so feeders_active is still
+    # the real count even while the shadow copy says 0.
+    feeders = _device_states.get(sub_id, {}).get("feeders_active", 6)
+    hpf = (_homes_map if homes_map is None else homes_map).get(sub_id, 80)
+    return feeders * hpf
+
+
 async def _event(client, severity: str, source: str, message: str):
     await client.publish("events/alarms", json.dumps({
         "time": datetime.now().strftime("%H:%M:%S"),
@@ -420,9 +428,11 @@ async def handle_control(payload: bytes, all_attacks: dict, client=None) -> None
                 sev, msg = _ATTACK_EVENTS[a_type]
                 await _event(client, sev, target.upper(), msg)
 
-            if a_type in _FAULT_IMMEDIATE:
+            # shutdown-ev-* is a shutdown too; a charger just waits for its next tick
+            last_sub = _device_states.get(target)
+            is_substation = last_sub is None or last_sub.get("type", "substation") == "substation"
+            if a_type in _FAULT_IMMEDIATE and is_substation:
                 _faulted_substations.add(target)
-                last_sub = _device_states.get(target)
                 if last_sub and client:
                     status, alarm = _FAULT_IMMEDIATE[a_type]
                     fault_payload = {
@@ -431,6 +441,7 @@ async def handle_control(payload: bytes, all_attacks: dict, client=None) -> None
                         "feeders_active": 0,
                         "load_mw": 0.0,
                         "_compromised": True,
+                        "_homes_lost": _homes_behind(target),
                         "alarms": [alarm],
                     }
                     if a_type == "wiper":
@@ -457,12 +468,9 @@ async def handle_control(payload: bytes, all_attacks: dict, client=None) -> None
 
 async def cascade_to_connected(client, substation_id: str, homes_map: dict) -> None:
     # once the parent trips, the children go dark faster than an operator can
-    # react — same lesson as the Aurora generator test at INL, the fault outruns
-    # the human. propogation here is instant because we just publish the shadow.
+    # react. propogation here is instant, we publish the shadow.
     connected = _topology.get(substation_id, [])
-    feeders = _device_states.get(substation_id, {}).get("feeders_active", 6)
-    hpf = homes_map.get(substation_id, 80)
-    homes = feeders * hpf
+    homes = _homes_behind(substation_id, homes_map)
 
     for device_id in connected:
         last = _device_states.get(device_id)
@@ -540,6 +548,9 @@ async def main():
                     modified["charging"] = False
             else:
                 modified = apply_attacks(device_id, dict(payload))
+
+            if device_type == "substation" and modified.get("status") in ("fault", "offline", "wiped"):
+                modified["_homes_lost"] = _homes_behind(device_id)
 
             await client.publish(f"shadow/{topic}", json.dumps(modified))
 

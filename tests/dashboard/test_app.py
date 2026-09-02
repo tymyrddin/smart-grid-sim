@@ -28,15 +28,6 @@ def test_load_attack_options_missing_file_returns_empty():
     assert app._load_attack_options("does-not-exist.yaml") == []
 
 
-def test_load_homes_per_feeder_reads_substations():
-    homes = app._load_homes_per_feeder()
-    assert homes == {"substation-01": 80, "substation-02": 80}
-
-
-def test_load_homes_per_feeder_missing_file_returns_empty():
-    assert app._load_homes_per_feeder("does-not-exist.yaml") == {}
-
-
 # _card_color
 
 def test_card_color_online():
@@ -74,23 +65,20 @@ def test_card_color_no_grid_label_humanised():
 
 # _homes_affected
 
-def test_homes_affected_counts_faulted_substation_feeders():
-    states = {"s1": {"type": "substation", "status": "fault", "feeders_active": 4, "id": "substation-01"}}
-    assert app._homes_affected(states) == 4 * 80
+def test_homes_affected_sums_engine_figures():
+    states = {
+        "s1": {"type": "substation", "status": "wiped", "_homes_lost": 320},
+        "s2": {"type": "substation", "status": "fault", "_homes_lost": 640},
+        "m1": {"type": "meter", "status": "no_grid"},
+    }
+    assert app._homes_affected(states) == 960
 
 
-def test_homes_affected_uses_fallback_feeder_count_when_zero():
-    states = {"s1": {"type": "substation", "status": "fault", "feeders_active": 0, "id": "substation-01"}}
-    assert app._homes_affected(states) == 6 * 80
-
-
-def test_homes_affected_counts_no_grid_devices_individually():
-    states = {"m1": {"type": "meter", "status": "no_grid"}}
-    assert app._homes_affected(states) == 1
-
-
-def test_homes_affected_ignores_online_devices():
-    states = {"m1": {"type": "meter", "status": "online"}}
+def test_homes_affected_zero_when_nothing_stamped():
+    states = {
+        "s1": {"type": "substation", "status": "online"},
+        "m1": {"type": "meter", "status": "no_grid"},
+    }
     assert app._homes_affected(states) == 0
 
 

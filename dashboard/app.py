@@ -56,22 +56,6 @@ def _load_attack_options(path: str = "config/attacks.yaml") -> list:
 
 ATTACK_OPTIONS = _load_attack_options()
 
-# homes_per_feeder from config (default 80)
-def _load_homes_per_feeder(path: str = "config/devices.yaml") -> dict:
-    try:
-        config = _read_yaml(path)
-    except (OSError, yaml.YAMLError):
-        return {}
-    return {
-        d["id"]: d.get("homes_per_feeder", 80)
-        for d in config.get("devices", [])
-        if d.get("type") == "substation"
-    }
-
-
-HOMES_PER_FEEDER = _load_homes_per_feeder()
-
-
 STATUS_COLOR = {
     "online": "#27ae60",
     "offline": "#c0392b",
@@ -149,15 +133,8 @@ def _make_card(state: dict) -> html.Div:
 
 
 def _homes_affected(states: dict) -> int:
-    total = 0
-    for s in states.values():
-        if s.get("type") == "substation" and s.get("status") in ("fault", "offline"):
-            feeders = s.get("feeders_active", 0) or 6
-            hpf = HOMES_PER_FEEDER.get(s.get("id", ""), 80)
-            total += feeders * hpf
-        elif s.get("status") == "no_grid":
-            total += 1  # individual device lost
-    return total
+    # the engine stamps _homes_lost on a substation while it is down; nothing to compute here
+    return sum(s.get("_homes_lost", 0) for s in states.values())
 
 
 app = dash.Dash(__name__)
