@@ -1,5 +1,9 @@
 # Smart Grid SimLab
 
+**This repository has moved.** Development continues at
+[codeberg.org/tymyrddin/smart-grid-sim](https://codeberg.org/tymyrddin/smart-grid-sim).
+This GitHub copy is archived and will not be updated.
+
 ![Dashboard](screenshot.png)
 
 A cyber-attack on a substation stays an abstraction until the lights go out. This runs a small
