@@ -13,5 +13,6 @@ First public release.
   Aurora, Predatory Sparrow, PIPEDREAM).
 - Real-time Flask and Dash dashboard: device cards, live telemetry charts, a SCADA-style event log,
   a homes-affected counter, and one-click attack triggering from the browser or a REST endpoint.
-- Docker Compose stack wiring the broker, simulator, engine, and dashboard together.
+- Docker Compose for the Mosquitto broker and the dashboard; simulator and engine run as local
+  Python processes.
 - Licensed under MIT.
