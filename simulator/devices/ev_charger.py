@@ -19,7 +19,7 @@ class EVCharger(BaseDevice):
                 self._session_energy = 0.0
             else:
                 self._power = max(7.0, min(22.0, self._power + random.gauss(0, 0.5)))
-                self._session_energy = min(80.0, self._session_energy + self._power * (2 / 3600))
+                self._session_energy = min(80.0, self._session_energy + self._power * (self.update_interval / 3600))
         else:
             if random.random() < 0.05:
                 # new session starts

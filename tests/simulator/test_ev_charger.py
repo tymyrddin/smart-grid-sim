@@ -38,6 +38,22 @@ def test_power_matches_internal_state_when_charging():
     assert t["power"] == pytest.approx(11.0)
 
 
+def test_session_energy_scales_with_update_interval():
+    per_hour = 10.0
+    got = {}
+    for interval in (1, 2):
+        ev = EVCharger("ev-test", update_interval=interval)
+        ev._charging = True
+        ev._power = per_hour
+        ev._session_energy = 0.0
+        with patch("simulator.devices.ev_charger.random.random", return_value=0.5), \
+             patch("simulator.devices.ev_charger.random.gauss", return_value=0.0):
+            ev.generate_telemetry()
+        got[interval] = ev._session_energy
+    assert got[1] == pytest.approx(per_hour / 3600)
+    assert got[2] == pytest.approx(2 * got[1])
+
+
 def test_session_ends_when_random_below_threshold():
     ev = EVCharger("ev-test")
     ev._charging = True
@@ -92,7 +108,7 @@ def test_power_clamped_at_minimum():
 
 
 def test_session_energy_accumulates_per_tick():
-    ev = EVCharger("ev-test")
+    ev = EVCharger("ev-test", update_interval=2)
     ev._charging = True
     ev._power = 10.0
     ev._session_energy = 0.0
