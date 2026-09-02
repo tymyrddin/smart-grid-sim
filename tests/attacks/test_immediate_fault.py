@@ -54,6 +54,7 @@ async def test_cascading_failure_immediate_publish(mock_client, seeded_substatio
     assert pub["feeders_active"] == 0
     assert pub["load_mw"] == 0.0
     assert pub["_compromised"] is True
+    assert pub["_homes_lost"] == 6 * 80
     assert "_wiped" not in pub
 
 
@@ -91,5 +92,16 @@ async def test_no_immediate_publish_without_prior_device_state(mock_client):
     attacks = {"wp": {"id": "wp", "type": "wiper", "target": "sub-01", "params": {}}}
     await _trigger(mock_client, "wp", attacks)
     assert _shadow_publish(mock_client, "sub-01") is None
-    # Attack is still registered and the target still marked faulted.
+    # Nothing known about the target yet, so it is assumed to be a substation
+    # and marked faulted; the attack itself is still registered.
     assert "sub-01" in engine._faulted_substations
+
+
+async def test_shutdown_on_charger_takes_the_slow_path(mock_client):
+    engine._device_states["ev-01"] = {"id": "ev-01", "type": "ev_charger", "power": 11.0}
+    attacks = {"sd": {"id": "sd", "type": "shutdown", "target": "ev-01", "params": {}}}
+    await _trigger(mock_client, "sd", attacks)
+
+    assert not [p for p in mock_client.published if p[0].startswith("shadow/")]
+    assert "ev-01" not in engine._faulted_substations
+    assert attacks["sd"] in engine._active_attacks["ev-01"]
