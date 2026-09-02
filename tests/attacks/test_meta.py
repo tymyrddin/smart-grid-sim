@@ -1,4 +1,3 @@
-"""Tests for coordinated and staged meta-attacks."""
 import pytest
 
 import attacks.engine as engine
@@ -16,7 +15,6 @@ def mock_client():
     return _MockClient()
 
 
-# coordinated
 async def test_coordinated_trigger_activates_all_named_sub_attacks():
     all_attacks = {
         "coord": {
@@ -105,12 +103,10 @@ async def test_coordinated_skips_unknown_sub_attack_ids():
             "params": {"attacks": ["nonexistent"]},
         },
     }
-    # Should not raise
     await engine._handle_coordinated(all_attacks["coord"], "trigger", all_attacks)
     assert not engine._active_attacks
 
 
-# staged
 async def test_staged_trigger_activates_phase1_only(monkeypatch):
     # Suppress the real phase-2 transition: close the coroutine and return a
     # stand-in task that supports add_done_callback (as the engine now expects).
@@ -153,7 +149,6 @@ async def test_staged_stop_clears_both_phases():
         "replay-a": {"id": "replay-a",  "type": "replay",            "target": "meter-001", "params": {}},
         "cascade-b": {"id": "cascade-b", "type": "cascading_failure", "target": "sub-01",    "params": {}},
     }
-    # Pre-seed both phases as if they were activated
     engine._active_attacks["meter-001"] = [all_attacks["replay-a"]]
     engine._active_attacks["sub-01"] = [all_attacks["cascade-b"]]
 

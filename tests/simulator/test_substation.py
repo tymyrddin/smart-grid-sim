@@ -74,4 +74,4 @@ def test_opposite_phase_offsets_produce_different_loads():
 def test_feeder_count_constant_across_ticks():
     sub = Substation("sub-test")
     counts = {sub.generate_telemetry()["feeders_active"] for _ in range(10)}
-    assert len(counts) == 1  # deterministic — set at init
+    assert len(counts) == 1

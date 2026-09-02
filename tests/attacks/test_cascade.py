@@ -1,4 +1,3 @@
-"""Tests for cascade propagation logic."""
 import json
 
 import pytest
@@ -18,7 +17,6 @@ def mock_client():
     return _MockClient()
 
 
-# cascade_to_connected
 async def test_cascade_publishes_shadow_for_each_child(mock_client):
     engine._topology["sub-01"] = ["meter-001", "meter-002"]
     engine._device_states["sub-01"] = {"id": "sub-01", "feeders_active": 4}
@@ -76,7 +74,6 @@ async def test_cascade_stops_ev_charging(mock_client):
 async def test_cascade_skips_devices_with_no_state(mock_client):
     engine._topology["sub-01"] = ["meter-unknown"]
     engine._device_states["sub-01"] = {"id": "sub-01", "feeders_active": 4}
-    # meter-unknown has no entry in _device_states
 
     await engine.cascade_to_connected(mock_client, "sub-01", {})
 
@@ -104,7 +101,6 @@ async def test_cascade_no_publish_when_no_children(mock_client):
     assert len(mock_client.published) == 0
 
 
-# _has_fault_attack
 def test_has_fault_attack_true_for_cascading_failure():
     engine._active_attacks["sub-01"] = [{"type": "cascading_failure"}]
     assert engine._has_fault_attack("sub-01") is True
@@ -134,7 +130,6 @@ def test_has_fault_attack_false_for_replay():
     assert engine._has_fault_attack("sub-01") is False
 
 
-# _get_parent
 def test_get_parent_returns_correct_parent():
     engine._topology["sub-01"] = ["meter-001", "meter-002"]
     assert engine._get_parent("meter-001") == "sub-01"

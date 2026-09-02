@@ -1,9 +1,3 @@
-"""Tests for the immediate substation fault published on trigger of a
-fault-inducing attack (handle_control's _FAULT_IMMEDIATE path).
-
-The immediate publish must match each attack's steady-state semantics so the
-operator view faults correctly without waiting for the next publish cycle.
-"""
 import json
 
 import pytest
@@ -88,12 +82,9 @@ async def test_target_marked_faulted_on_immediate_fault(mock_client, seeded_subs
 
 
 async def test_no_immediate_publish_without_prior_device_state(mock_client):
-    # No _device_states entry for the target — the immediate publish is skipped.
     attacks = {"wp": {"id": "wp", "type": "wiper", "target": "sub-01", "params": {}}}
     await _trigger(mock_client, "wp", attacks)
     assert _shadow_publish(mock_client, "sub-01") is None
-    # Nothing known about the target yet, so it is assumed to be a substation
-    # and marked faulted; the attack itself is still registered.
     assert "sub-01" in engine._faulted_substations
 
 

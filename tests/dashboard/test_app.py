@@ -7,7 +7,6 @@ from dash import html
 
 import dashboard.app as app
 
-# _read_yaml / config loaders
 
 def test_read_yaml_parses_real_config():
     cfg = app._read_yaml("config/attacks.yaml")
@@ -17,7 +16,6 @@ def test_read_yaml_parses_real_config():
 
 def test_load_attack_options_has_separators_and_entries():
     opts = app._load_attack_options()
-    # two disabled category separators, plus one entry per configured attack
     separators = [o for o in opts if o.get("disabled")]
     entries = [o for o in opts if not o.get("disabled")]
     assert len(separators) == 2
@@ -27,8 +25,6 @@ def test_load_attack_options_has_separators_and_entries():
 def test_load_attack_options_missing_file_returns_empty():
     assert app._load_attack_options("does-not-exist.yaml") == []
 
-
-# _card_color
 
 def test_card_color_online():
     border, label = app._card_color({"status": "online"})
@@ -63,8 +59,6 @@ def test_card_color_no_grid_label_humanised():
     assert label == "NO GRID"
 
 
-# _homes_affected
-
 def test_homes_affected_sums_engine_figures():
     states = {
         "s1": {"type": "substation", "status": "wiped", "_homes_lost": 320},
@@ -81,8 +75,6 @@ def test_homes_affected_zero_when_nothing_stamped():
     }
     assert app._homes_affected(states) == 0
 
-
-# _make_card
 
 def test_make_card_returns_div_with_device_id():
     card = app._make_card({"id": "meter-001", "type": "meter", "status": "online", "voltage": 230.0})

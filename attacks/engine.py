@@ -23,7 +23,7 @@ _faulted_substations: set[str] = set()
 _frozen_states: dict[str, dict] = {}
 _homes_map: dict[str, int] = {}
 _thermal_accumulation: dict[str, float] = {}  # device_id -> degrees C above baseline
-_aurora_ticks: dict[str, int] = {}  # device_id -> tick counter
+_aurora_ticks: dict[str, int] = {}
 _background_tasks: set = set()  # strong refs to staged-transition tasks
 
 
@@ -68,8 +68,6 @@ def _has_fault_attack(device_id: str) -> bool:
 
 
 def _homes_behind(sub_id: str, homes_map: dict | None = None) -> int:
-    # _device_states holds what the simulator sent, so feeders_active is still
-    # the real count even while the shadow copy says 0.
     feeders = _device_states.get(sub_id, {}).get("feeders_active", 6)
     hpf = (_homes_map if homes_map is None else homes_map).get(sub_id, 80)
     return feeders * hpf
@@ -167,7 +165,6 @@ def _apply_single(attack: dict, payload: dict) -> dict:
                 payload[key] = 0.0
 
     elif t == "cascading_failure":
-        # Deterministic while active; cascade state lives in _faulted_substations.
         payload["status"] = "fault"
         payload["feeders_active"] = 0
         payload["load_mw"] = 0.0
@@ -216,7 +213,6 @@ def _apply_single(attack: dict, payload: dict) -> dict:
         payload.setdefault("alarms", []).append("SIS_OFFLINE")
 
     elif t == "thermal_stress":
-        # Heat the transformer each tick until thermal protection trips.
         device_id = payload.get("id", "")
         rate = params.get("rate", 2.0)
         threshold = params.get("trip_threshold", 112.0)
@@ -239,7 +235,6 @@ def _apply_single(attack: dict, payload: dict) -> dict:
                 payload[key] = None
 
     elif t == "aurora":
-        # Out-of-phase breaker cycling; after 8 ticks the generator trips for good.
         device_id = payload.get("id", "")
         _aurora_ticks[device_id] = _aurora_ticks.get(device_id, 0) + 1
         tick = _aurora_ticks[device_id]
@@ -294,7 +289,6 @@ async def _handle_coordinated(attack: dict, action: str, all_attacks: dict, clie
         if isinstance(item, str):
             resolved_ids.append(item)
         else:
-            # Inline attack definition: register it under a stable synthetic id.
             synthetic_id = f"_inline_{attack['id']}_{item['target']}"
             all_attacks[synthetic_id] = {
                 "id": synthetic_id,
@@ -387,9 +381,6 @@ def _clear_attack(attack: dict, target: str) -> None:
         _aurora_ticks.pop(target, None)
 
 
-# Fault-inducing attacks get an immediate substation publish on trigger, so the
-# operator view faults without waiting for the next publish cycle. Each maps to
-# the (status, alarm) that matches its steady-state semantics.
 _FAULT_IMMEDIATE = {
     "cascading_failure": ("fault", "CASCADING_FAILURE"),
     "shutdown": ("offline", "DEVICE_OFFLINE"),
@@ -428,7 +419,6 @@ async def handle_control(payload: bytes, all_attacks: dict, client=None) -> None
                 sev, msg = _ATTACK_EVENTS[a_type]
                 await _event(client, sev, target.upper(), msg)
 
-            # shutdown-ev-* is a shutdown too; a charger just waits for its next tick
             last_sub = _device_states.get(target)
             is_substation = last_sub is None or last_sub.get("type", "substation") == "substation"
             if a_type in _FAULT_IMMEDIATE and is_substation:

@@ -1,10 +1,8 @@
-"""Tests for stateful attacks: replay, thermal_stress, aurora."""
 import pytest
 
 import attacks.engine as engine
 
 
-# replay
 def test_replay_freezes_state_on_first_call():
     attack = {"type": "replay", "params": {}}
     payload = {"id": "m1", "voltage": 230.0, "status": "online"}
@@ -15,9 +13,7 @@ def test_replay_freezes_state_on_first_call():
 
 def test_replay_returns_frozen_state_on_subsequent_calls():
     attack = {"type": "replay", "params": {}}
-    # First call: freeze at 230V
     engine._apply_single(attack, {"id": "m1", "voltage": 230.0})
-    # Second call with changed value: should return 230V, not 999V
     result = engine._apply_single(attack, {"id": "m1", "voltage": 999.0})
     assert result["voltage"] == 230.0
     assert result["_compromised"] is True
@@ -28,7 +24,6 @@ def test_replay_frozen_state_is_not_overwritten():
     engine._apply_single(attack, {"id": "m1", "voltage": 100.0})
     engine._apply_single(attack, {"id": "m1", "voltage": 200.0})
     engine._apply_single(attack, {"id": "m1", "voltage": 300.0})
-    # Frozen state should remain at the first value
     assert engine._frozen_states["m1"]["voltage"] == 100.0
 
 
@@ -39,7 +34,6 @@ def test_replay_clear_removes_frozen_state():
     assert "m1" not in engine._frozen_states
 
 
-# thermal_stress
 def test_thermal_accumulates_per_tick():
     attack = {"type": "thermal_stress", "params": {"rate": 2.0, "trip_threshold": 999.0}}
     payload = {"id": "s1", "transformer_temp": 65.0}
@@ -84,7 +78,6 @@ def test_thermal_accumulation_persists_across_calls():
     assert engine._thermal_accumulation["s1"] == pytest.approx(6.0)
 
 
-# aurora
 def test_aurora_odd_tick_zeroes_power():
     attack = {"type": "aurora", "params": {}}
     payload = {"id": "i1", "output_power": 5.0}

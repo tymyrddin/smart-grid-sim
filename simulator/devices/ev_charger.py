@@ -13,7 +13,6 @@ class EVCharger(BaseDevice):
     def generate_telemetry(self) -> dict:
         if self._charging:
             if random.random() < 0.03:
-                # session ends
                 self._charging = False
                 self._power = 0.0
                 self._session_energy = 0.0
@@ -22,7 +21,6 @@ class EVCharger(BaseDevice):
                 self._session_energy = min(80.0, self._session_energy + self._power * (self.update_interval / 3600))
         else:
             if random.random() < 0.05:
-                # new session starts
                 self._charging = True
                 self._power = round(random.uniform(7.0, 22.0), 2)
 

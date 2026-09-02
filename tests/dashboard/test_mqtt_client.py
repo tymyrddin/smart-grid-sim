@@ -1,4 +1,3 @@
-"""Tests for dashboard/mqtt_client.py — state management, history, events."""
 import json
 
 import pytest
@@ -20,7 +19,6 @@ def raw(**kwargs) -> bytes:
     return json.dumps(kwargs).encode()
 
 
-# _handle_alarm
 def test_alarm_appended_to_event_log():
     mc._handle_alarm(raw(time="12:00:00", severity="CRITICAL", source="ENGINE", message="Test"))
     assert len(mc.event_log) == 1
@@ -50,7 +48,6 @@ def test_alarm_event_log_maxlen_80():
     assert len(mc.event_log) == 80
 
 
-# _handle_telemetry
 def test_telemetry_updates_device_state():
     mc._handle_telemetry(raw(id="meter-001", type="meter", status="online", voltage=230.0))
     assert "meter-001" in mc.device_states
@@ -135,7 +132,6 @@ def test_telemetry_none_value_not_appended_to_history():
     assert len(mc.metric_history["sub1"]) == 0
 
 
-# Status transition logging
 def test_status_transition_logged_on_fault():
     mc.device_states["m1"] = {"status": "online"}
     mc._handle_telemetry(raw(id="m1", type="meter", status="fault"))
@@ -162,7 +158,6 @@ def test_status_transition_logged_for_no_grid():
     assert any("sub-01" in e.get("message", "") for e in events)
 
 
-# _status_severity
 @pytest.mark.parametrize("status,expected", [
     ("fault",   "CRITICAL"),
     ("offline", "CRITICAL"),
@@ -175,7 +170,6 @@ def test_status_severity_mapping(status, expected):
     assert mc._status_severity(status) == expected
 
 
-# _status_message
 def test_status_message_wiped_mentions_wiper():
     msg = mc._status_message({"status": "wiped"})
     assert "wiper" in msg.lower() or "dark" in msg.lower()
@@ -206,7 +200,6 @@ def test_status_message_unknown_status():
     assert "custom_state" in msg
 
 
-# Thread-safe accessors
 def test_get_states_returns_shallow_copy():
     mc.device_states["x"] = {"status": "online"}
     result = mc.get_states()
@@ -219,7 +212,7 @@ def test_get_events_returns_plain_list():
     result = mc.get_events()
     assert isinstance(result, list)
     result.append({"msg": "b"})
-    assert len(mc.event_log) == 1  # original deque unaffected
+    assert len(mc.event_log) == 1
 
 
 def test_get_metric_history_returns_list_values():

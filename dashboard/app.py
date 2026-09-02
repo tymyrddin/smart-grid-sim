@@ -1,8 +1,3 @@
-"""
-Smart Grid SimLab - Dashboard
-Flask + Plotly Dash 2.x
-"""
-
 import dash
 import plotly.graph_objects as go
 import yaml
@@ -133,7 +128,6 @@ def _make_card(state: dict) -> html.Div:
 
 
 def _homes_affected(states: dict) -> int:
-    # the engine stamps _homes_lost on a substation while it is down; nothing to compute here
     return sum(s.get("_homes_lost", 0) for s in states.values())
 
 
@@ -145,8 +139,6 @@ app.layout = html.Div(
     style={"backgroundColor": _BG, "color": "#ecf0f1", "minHeight": "100vh",
            "padding": "20px 24px", "fontFamily": _MONO},
     children=[
-
-        # Header
         html.Div(
             style={"display": "flex", "justifyContent": "space-between",
                    "alignItems": "flex-start", "marginBottom": "20px"},
@@ -175,12 +167,9 @@ app.layout = html.Div(
             ],
         ),
 
-        # Alert banner (hidden unless critical)
         html.Div(id="alert-banner"),
 
-        # Attack controls + event log (side by side), above device grid for better UX
         html.Div(style={"display": "flex", "gap": "16px", "marginBottom": "16px"}, children=[
-
             html.Div(style={**_PANEL, "flex": "1", "marginBottom": 0}, children=[
                 html.H3("Attack Controls", style=_H3),
                 dcc.Dropdown(id="attack-select", options=ATTACK_OPTIONS,
@@ -208,13 +197,11 @@ app.layout = html.Div(
             ]),
         ]),
 
-        # Device grid
         html.Div(style=_PANEL, children=[
             html.H3("Device Status", style=_H3),
             html.Div(id="device-grid"),
         ]),
 
-        # Charts (2 × 2 subplots)
         html.Div(style=_PANEL, children=[
             html.H3("Live Telemetry", style=_H3),
             dcc.Graph(id="telemetry-chart", style={"height": "380px"},
@@ -272,7 +259,6 @@ def update_devices(_):
                                   "fontWeight": "bold" if homes > 0 else "normal"})),
     ])
 
-    # Alert banner when critical events are active
     if homes > 0 or offline > 0:
         banner = html.Div(
             f"⚠  GRID ALERT — {homes:,} homes affected | {offline} devices down",
@@ -314,7 +300,6 @@ def update_chart(_):
     temp_history = mqtt_client.get_temp_history()
     states = mqtt_client.get_states()
 
-    # Group device_ids by type
     types_order = ["meter", "inverter", "ev_charger", "substation"]
     type_groups: dict[str, list[str]] = {t: [] for t in types_order}
     for device_id, state in states.items():
@@ -358,14 +343,12 @@ def update_chart(_):
                 row=row, col=col,
             )
 
-    # Transformer temperature overlay on substations subplot (Stuxnet visibility)
     for device_id in sorted(type_groups.get("substation", [])):
         data = temp_history.get(device_id, [])
         if not data:
             continue
         times = [d[0] for d in data]
         values = [d[1] for d in data]
-        # Only show if temperature is elevated (attack active) or briefly after
         if max(values) > 70:
             fig.add_trace(
                 go.Scatter(x=times, y=values, mode="lines",
@@ -375,7 +358,6 @@ def update_chart(_):
                 row=2, col=2,
             )
 
-    # Styling
     fig.update_layout(
         paper_bgcolor=_PANEL_BG,
         plot_bgcolor=_CARD_BG,
@@ -445,10 +427,6 @@ def handle_attack_button(_t, _s, attack_id):
     return f"✓  {attack_id}  {verb}"
 
 
-# No authentication by design: this is a local demo where triggering attacks is
-# the whole point. The control interface (this endpoint and the control/attacks
-# MQTT topic) is unauthenticated, so run it only on a trusted network — never
-# expose the dashboard or broker to the public internet. See README.
 @server.route("/attack/trigger", methods=["POST"])
 def rest_trigger():
     data = request.get_json(silent=True) or {}

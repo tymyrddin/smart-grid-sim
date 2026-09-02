@@ -1,4 +1,3 @@
-"""Tests for config-loading functions: load_attacks, load_topology, load_homes."""
 from unittest.mock import mock_open, patch
 
 import attacks.engine as engine
@@ -66,7 +65,6 @@ def test_load_topology_maps_parent_to_children():
 def test_load_topology_excludes_devices_without_parent():
     with patch("builtins.open", mock_open(read_data=DEVICES_YAML)):
         topo = engine.load_topology("fake.yaml")
-    # Substations have no connected_to — should not appear as children anywhere
     for children in topo.values():
         assert "substation-01" not in children
         assert "substation-02" not in children

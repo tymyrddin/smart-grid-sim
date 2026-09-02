@@ -63,4 +63,4 @@ def test_device_classes_registry_covers_all_types():
 def test_build_devices_defaults_update_interval():
     config = {"devices": [{"id": "m1", "type": "meter"}]}
     devices = build_devices(config)
-    assert devices[0].update_interval == 1  # default
+    assert devices[0].update_interval == 1

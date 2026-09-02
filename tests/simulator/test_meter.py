@@ -51,5 +51,4 @@ def test_base_load_initialised_in_valid_range():
 def test_state_merges_telemetry_with_base_fields():
     meter = SmartMeter("meter-test")
     state = meter.state()
-    # Both base fields and telemetry fields present in one dict
     assert "id" in state and "voltage" in state

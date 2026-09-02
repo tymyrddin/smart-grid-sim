@@ -110,7 +110,6 @@ def _handle_telemetry(raw: bytes) -> None:
             if temp is not None:
                 temp_history[device_id].append((ts.strftime("%H:%M:%S"), float(temp)))
 
-        # Only log status transitions; engine events carry the detail.
         new_status = payload.get("status", "online")
         if new_status != prev_status and new_status != "online":
             event_log.append({

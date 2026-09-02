@@ -1,4 +1,3 @@
-"""Tests for handle_control — the MQTT control message dispatcher."""
 import json
 
 import pytest
@@ -54,7 +53,6 @@ async def test_stop_clears_replay_frozen_state(sample_attacks):
     assert "meter-002" not in engine._frozen_states
 
 
-# apply_attacks
 def test_apply_attacks_marks_compromised(sample_attacks):
     engine._active_attacks["meter-001"] = [sample_attacks["spoof-m1"]]
     result = engine.apply_attacks("meter-001", {"id": "meter-001", "voltage": 230.0})
@@ -75,6 +73,5 @@ def test_apply_attacks_chains_multiple_attacks(sample_attacks):
     ]
     payload = {"id": "meter-001", "voltage": 230.0, "frequency": 50.0}
     result = engine.apply_attacks("meter-001", payload)
-    # Spoofing applied: voltage changed; frequency attack applied: frequency near 47.5
     assert result["_compromised"] is True
     assert 47.0 <= result["frequency"] <= 48.0

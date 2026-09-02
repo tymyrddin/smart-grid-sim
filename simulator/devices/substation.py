@@ -4,8 +4,6 @@ import time
 
 from simulator.base_device import BaseDevice
 
-# Load follows a full sine over the synthetic day, one complete cycle every
-# _DAY_CYCLE_SECONDS — same 5-minute period as the inverter's solar curve.
 _DAY_CYCLE_SECONDS = 300
 
 
@@ -18,7 +16,7 @@ class Substation(BaseDevice):
     def generate_telemetry(self) -> dict:
         t = (time.time() / _DAY_CYCLE_SECONDS) * 2 * math.pi
         cycle = math.sin(t + self._phase_offset)
-        load_base = 6.0 + 3.0 * cycle  # 3 to 9 MW
+        load_base = 6.0 + 3.0 * cycle
 
         return {
             "bus_voltage": round(random.gauss(11000.0, 100.0), 0),

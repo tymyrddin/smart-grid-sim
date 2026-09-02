@@ -28,7 +28,7 @@ def build_devices(config: dict) -> list:
         if cls is None:
             print(f"[warn] unknown device type '{d['type']}', skipping {d['id']}")
             continue
-        devices.append(cls(  # type: ignore[abstract]  # registry holds concrete subclasses
+        devices.append(cls(  # type: ignore[abstract]
             device_id=d["id"],
             update_interval=d.get("update_interval", 1),
             vulnerabilities=d.get("vulnerabilities", []),
