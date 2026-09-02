@@ -1,3 +1,11 @@
+[project]
+name = "smart-grid-simlab"
+version = "0.1.0"
+description = "A synthetic smart grid and attack visualiser for OT/ICS security demos."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
