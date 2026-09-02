@@ -50,11 +50,41 @@ for the story behind it.
 Needs Docker and Python 3.11 or newer.
 
 ```bash
-docker compose up --build
-# then open http://localhost:8050
+# 1. Start MQTT broker
+docker compose up -d broker
+
+# 2. Install Python deps
+pip install -r requirements.txt
+
+# 3. Start device simulator (background)
+python -m simulator.main &
+
+# 4. Start attack engine
+python -m attacks.engine &
+
+# 5. Start dashboard
+python -m dashboard.app
+# → http://localhost:8050
 ```
 
-That starts the broker, the simulator, the attack engine and the dashboard together. 
+The broker runs in Docker; the simulator, engine and dashboard are plain Python processes
+talking to it on localhost:1883. `docker compose up --build` will also run the dashboard in a
+container, which works fine next to the two local processes.
+
+### Triggering attacks
+
+From the dashboard: pick an attack from the dropdown and click Trigger. Hover over any entry
+for the incident it is based on.
+
+Via REST, for scripted demos:
+
+```bash
+curl -s -X POST http://localhost:8050/attack/trigger \
+  -H "Content-Type: application/json" \
+  -d '{"attack_id": "cascade-substation-01"}'
+```
+
+Send `{"attack_id": "...", "action": "stop"}` to the same endpoint to stop it.
 
 ## A word on safety
 
